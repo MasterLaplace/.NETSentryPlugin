@@ -1,0 +1,35 @@
+# Sentry Configuration
+# This file configures the Sentry CLI for release management
+# Documentation: https://docs.sentry.io/product/cli/configuration/
+
+[defaults]
+# Your Sentry organization slug (found in your Sentry URL)
+org = your-organization
+
+# Your Sentry project slug
+project = mysentryapp
+
+# Sentry server URL (use default for SaaS, customize for self-hosted)
+url = https://sentry.io/
+
+[auth]
+# Auth token is loaded from SENTRY_AUTH_TOKEN environment variable
+# NEVER commit actual tokens to version control
+# token = ___SENTRY_AUTH_TOKEN___
+
+[http]
+# HTTP timeout settings
+timeout = 30
+max_retries = 3
+
+[log]
+# Log level: trace, debug, info, warn, error
+level = info
+
+[releases]
+# Automatically upload source files
+auto_upload = true
+
+[commits]
+# Automatically associate commits (requires GitLab/GitHub integration)
+auto = true

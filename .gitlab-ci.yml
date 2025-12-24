@@ -1,0 +1,214 @@
+# ============================================================================
+# GitLab CI/CD Pipeline for MySentry.Plugin
+# ============================================================================
+# This pipeline builds, tests, and deploys the application with full Sentry integration
+# including release management, commit association, and deployment notifications.
+#
+# Required CI/CD Variables (Settings > CI/CD > Variables):
+# - SENTRY_AUTH_TOKEN: Sentry authentication token (masked, protected)
+# - SENTRY_ORG: Sentry organization slug
+# - SENTRY_PROJECT: Sentry project slug
+# - SENTRY_DSN: Sentry DSN for the application (masked, protected)
+# - NUGET_API_KEY: NuGet API key for package publishing (optional, masked)
+# ============================================================================
+
+stages:
+  - build
+  - test
+  - release
+  - deploy
+
+variables:
+  DOTNET_VERSION: "8.0"
+  SOLUTION_FILE: "mysentryapp.sln"
+  PLUGIN_PROJECT: "src/MySentry.Plugin/MySentry.Plugin.csproj"
+  TESTAPP_PROJECT: "src/MySentry.TestApp/MySentry.TestApp.csproj"
+  TEST_PROJECT: "tests/MySentry.Plugin.Tests/MySentry.Plugin.Tests.csproj"
+  # Sentry release version - uses Git tag or commit SHA
+  SENTRY_RELEASE: "${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
+  # Sentry environment based on branch
+  SENTRY_ENVIRONMENT: "${CI_COMMIT_BRANCH}"
+
+# ============================================================================
+# Build Stage
+# ============================================================================
+
+build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  script:
+    - echo "Building solution..."
+    - dotnet restore ${SOLUTION_FILE}
+    - dotnet build ${SOLUTION_FILE} --configuration Release --no-restore
+
+    # Build with Sentry symbols and source context
+    - |
+      dotnet build ${PLUGIN_PROJECT} --configuration Release --no-restore \
+        -p:SentryOrg=${SENTRY_ORG} \
+        -p:SentryProject=${SENTRY_PROJECT} \
+        -p:SentryUploadSymbols=true \
+        -p:SentryUploadSources=true
+  artifacts:
+    paths:
+      - src/MySentry.Plugin/bin/Release/
+      - src/MySentry.TestApp/bin/Release/
+    expire_in: 1 week
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - ~/.nuget/packages
+
+# ============================================================================
+# Test Stage
+# ============================================================================
+
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  dependencies:
+    - build
+  script:
+    - echo "Running unit tests..."
+    - dotnet test ${TEST_PROJECT} --configuration Release --no-build --verbosity normal --logger "junit;LogFilePath=test-results.xml"
+  artifacts:
+    when: always
+    paths:
+      - test-results.xml
+    reports:
+      junit: test-results.xml
+  coverage: '/Total\s*\|\s*(\d+(?:\.\d+)?)%/'
+
+test:integration:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  dependencies:
+    - build
+  script:
+    - echo "Running integration tests..."
+    - dotnet test ${TEST_PROJECT} --configuration Release --no-build --filter "Category=Integration"
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_MERGE_REQUEST_ID
+
+# ============================================================================
+# Sentry Release Stage
+# ============================================================================
+
+sentry:create-release:
+  stage: release
+  image: getsentry/sentry-cli:latest
+  dependencies:
+    - build
+    - test
+  script:
+    - echo "Creating Sentry release ${SENTRY_RELEASE}..."
+
+    # Create new release
+    - sentry-cli releases new ${SENTRY_RELEASE}
+
+    # Associate commits with release (requires GitLab integration)
+    - sentry-cli releases set-commits ${SENTRY_RELEASE} --auto
+
+    # Upload source files for better stack traces
+    - |
+      sentry-cli releases files ${SENTRY_RELEASE} upload-sourcemaps \
+        --no-sourcemap-reference \
+        ./src/ \
+        --ignore-file .sentryignore || true
+
+    # Upload debug symbols (PDB files)
+    - |
+      sentry-cli debug-files upload \
+        --include-sources \
+        ./src/MySentry.Plugin/bin/Release/ || true
+
+    # Finalize the release
+    - sentry-cli releases finalize ${SENTRY_RELEASE}
+
+    - echo "Sentry release ${SENTRY_RELEASE} created successfully"
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  environment:
+    name: release
+
+# ============================================================================
+# Deploy Stage
+# ============================================================================
+
+deploy:staging:
+  stage: deploy
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  dependencies:
+    - build
+  script:
+    - echo "Deploying to staging..."
+    # Add your deployment commands here
+    # Example: dotnet publish, docker push, kubectl apply, etc.
+
+    # Notify Sentry of deployment
+    - |
+      curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${SENTRY_RELEASE}/deploys/" \
+        -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "{\"environment\": \"staging\", \"name\": \"Staging Deploy ${CI_PIPELINE_ID}\"}"
+  environment:
+    name: staging
+    url: https://staging.example.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+
+deploy:production:
+  stage: deploy
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  dependencies:
+    - build
+  script:
+    - echo "Deploying to production..."
+    # Add your deployment commands here
+
+    # Notify Sentry of production deployment
+    - |
+      curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${SENTRY_RELEASE}/deploys/" \
+        -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+        -H "Content-Type: application/json" \
+        -d "{\"environment\": \"production\", \"name\": \"Production Deploy ${CI_PIPELINE_ID}\"}"
+  environment:
+    name: production
+    url: https://app.example.com
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+  needs:
+    - job: deploy:staging
+      optional: true
+
+# ============================================================================
+# NuGet Package Publishing (Optional)
+# ============================================================================
+
+publish:nuget:
+  stage: deploy
+  image: mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
+  dependencies:
+    - build
+    - test
+  script:
+    - echo "Publishing NuGet package..."
+    - dotnet pack ${PLUGIN_PROJECT} --configuration Release --no-build -o ./nupkg
+    - dotnet nuget push ./nupkg/*.nupkg --api-key ${NUGET_API_KEY} --source https://api.nuget.org/v3/index.json --skip-duplicate
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+  when: manual
+
+# ============================================================================
+# Security Scanning
+# ============================================================================
+
+sast:
+  stage: test
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml

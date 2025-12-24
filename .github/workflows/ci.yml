@@ -1,0 +1,274 @@
+# ============================================================================
+# GitHub Actions CI/CD Pipeline for MySentry.Plugin
+# ============================================================================
+# Alternative to GitLab CI for GitHub users
+#
+# Required Repository Secrets (Settings > Secrets and variables > Actions):
+# - SENTRY_AUTH_TOKEN: Sentry authentication token
+# - SENTRY_ORG: Sentry organization slug
+# - SENTRY_PROJECT: Sentry project slug
+# - SENTRY_DSN: Sentry DSN for the application
+# - NUGET_API_KEY: NuGet API key for package publishing (optional)
+# ============================================================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  SOLUTION_FILE: 'mysentryapp.sln'
+  PLUGIN_PROJECT: 'src/MySentry.Plugin/MySentry.Plugin.csproj'
+  TEST_PROJECT: 'tests/MySentry.Plugin.Tests/MySentry.Plugin.Tests.csproj'
+
+jobs:
+  # ============================================================================
+  # Build Job
+  # ============================================================================
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for Sentry commit association
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build
+        run: |
+          dotnet build ${{ env.SOLUTION_FILE }} \
+            --configuration Release \
+            --no-restore \
+            -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            src/MySentry.Plugin/bin/Release/
+            src/MySentry.TestApp/bin/Release/
+
+  # ============================================================================
+  # Test Job
+  # ============================================================================
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration Release --no-restore
+
+      - name: Run tests
+        run: |
+          dotnet test ${{ env.TEST_PROJECT }} \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --logger "trx;LogFileName=test-results.trx" \
+            --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/test-results.trx
+            **/coverage.cobertura.xml
+
+      - name: Code coverage report
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: '**/coverage.cobertura.xml'
+          fail_ci_if_error: false
+
+  # ============================================================================
+  # Sentry Release Job
+  # ============================================================================
+  sentry-release:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Install Sentry CLI
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+
+      - name: Create Sentry release
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          VERSION=${{ needs.build.outputs.version }}
+
+          echo "Creating Sentry release: $VERSION"
+
+          # Create release
+          sentry-cli releases new $VERSION
+
+          # Associate commits
+          sentry-cli releases set-commits $VERSION --auto
+
+          # Upload debug files
+          sentry-cli debug-files upload \
+            --include-sources \
+            ./src/MySentry.Plugin/bin/Release/ || true
+
+          # Finalize release
+          sentry-cli releases finalize $VERSION
+
+          echo "Sentry release $VERSION created successfully"
+
+  # ============================================================================
+  # Deploy Job
+  # ============================================================================
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build, test, sentry-release]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: https://staging.example.com
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add your deployment commands here
+
+      - name: Notify Sentry of deployment
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        run: |
+          VERSION=${{ needs.build.outputs.version }}
+          curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${VERSION}/deploys/" \
+            -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"environment": "staging"}'
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build, test, sentry-release, deploy-staging]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://app.example.com
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add your deployment commands here
+
+      - name: Notify Sentry of deployment
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        run: |
+          VERSION=${{ needs.build.outputs.version }}
+          curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${VERSION}/deploys/" \
+            -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"environment": "production"}'
+
+  # ============================================================================
+  # NuGet Publish Job
+  # ============================================================================
+  publish-nuget:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build
+        run: dotnet build ${{ env.PLUGIN_PROJECT }} --configuration Release --no-restore
+
+      - name: Pack NuGet package
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          dotnet pack ${{ env.PLUGIN_PROJECT }} \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=$VERSION \
+            -o ./nupkg
+
+      - name: Publish to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg \
+            --api-key $NUGET_API_KEY \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
