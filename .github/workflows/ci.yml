@@ -197,7 +197,7 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
         run: |
           VERSION=${{ needs.build.outputs.version }}
-          curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${VERSION}/deploys/" \
+          curl -X POST "https://sentry.6tm.eu/api/0/organizations/${SENTRY_ORG}/releases/${VERSION}/deploys/" \
             -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{"environment": "staging"}'
@@ -227,7 +227,7 @@ jobs:
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
         run: |
           VERSION=${{ needs.build.outputs.version }}
-          curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${VERSION}/deploys/" \
+          curl -X POST "https://sentry.6tm.eu/api/0/organizations/${SENTRY_ORG}/releases/${VERSION}/deploys/" \
             -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
             -H "Content-Type: application/json" \
             -d '{"environment": "production"}'

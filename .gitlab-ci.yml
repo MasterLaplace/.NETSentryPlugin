@@ -149,7 +149,7 @@ deploy:staging:
 
     # Notify Sentry of deployment
     - |
-      curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${SENTRY_RELEASE}/deploys/" \
+      curl -X POST "https://sentry.6tm.eu/api/0/organizations/${SENTRY_ORG}/releases/${SENTRY_RELEASE}/deploys/" \
         -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "{\"environment\": \"staging\", \"name\": \"Staging Deploy ${CI_PIPELINE_ID}\"}"
@@ -171,7 +171,7 @@ deploy:production:
 
     # Notify Sentry of production deployment
     - |
-      curl -X POST "https://sentry.io/api/0/organizations/${SENTRY_ORG}/releases/${SENTRY_RELEASE}/deploys/" \
+      curl -X POST "https://sentry.6tm.eu/api/0/organizations/${SENTRY_ORG}/releases/${SENTRY_RELEASE}/deploys/" \
         -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
         -H "Content-Type: application/json" \
         -d "{\"environment\": \"production\", \"name\": \"Production Deploy ${CI_PIPELINE_ID}\"}"

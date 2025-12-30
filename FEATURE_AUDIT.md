@@ -20,6 +20,35 @@
 
 ---
 
+## 🎯 Compatibilité par Type d'Application
+
+> **📋 Document détaillé:** [docs/PLATFORM_COMPATIBILITY.md](docs/PLATFORM_COMPATIBILITY.md)
+
+### Types d'Apps Supportés
+
+| Type | Package | MySentry.Plugin Compatible | Notes |
+|------|---------|---------------------------|-------|
+| **🌐 ASP.NET Core** | `Sentry.AspNetCore` | ✅ Oui | Cible principale |
+| **📱 MAUI** | `Sentry.Maui` | ⚠️ Adaptation requise | Nécessite `UseMauiSentry()` |
+| **🖥️ WPF/WinForms** | `Sentry` | ⚠️ Adaptation requise | Nécessite `IsGlobalModeEnabled` |
+| **🌍 Blazor WASM** | `Sentry` | ⚠️ Limité | Pas de profiling, pas de sessions |
+| **☁️ AWS Lambda** | `Sentry.AspNetCore` | ⚠️ Adaptation requise | Nécessite `FlushOnCompletedRequest` |
+| **☁️ Azure Functions** | `Sentry.Extensions.Logging` | ⚠️ Adaptation requise | Nécessite OpenTelemetry |
+| **⚙️ Console** | `Sentry` | ⚠️ Adaptation requise | Pas de middleware |
+
+### Features par Plateforme (Résumé)
+
+| Feature | Web | Desktop Client | Mobile | Serverless |
+|---------|-----|----------------|--------|------------|
+| Error Monitoring | ✅ | ✅ | ✅ | ✅ |
+| Tracing | ✅ | ✅ | ✅ | ✅ |
+| Session Tracking | ❌ | ✅ | ✅ | ❌ |
+| Profiling | 🆕 Alpha | 🆕 Alpha | ✅ iOS | ❌ |
+| Structured Logs | ✅ | ✅ | ✅ | ⚠️ Partiel |
+| Crons | ✅ | ✅ | ✅ | ✅ |
+
+---
+
 ## 📋 Detailed Feature Audit
 
 ### Core Features

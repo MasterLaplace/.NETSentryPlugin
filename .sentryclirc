@@ -10,7 +10,7 @@ org = your-organization
 project = mysentryapp
 
 # Sentry server URL (use default for SaaS, customize for self-hosted)
-url = https://sentry.io/
+url = https://sentry.6tm.eu/
 
 [auth]
 # Auth token is loaded from SENTRY_AUTH_TOKEN environment variable

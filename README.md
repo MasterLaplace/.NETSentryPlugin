@@ -10,7 +10,7 @@
 
 **An enterprise-grade Sentry integration plugin for .NET applications**
 
-[Quick Start](#-30-minute-setup-guide) • [Features](#-features) • [Documentation](#-documentation) • [Architecture](#-architecture) • [Troubleshooting](#-troubleshooting)
+[Quick Start](#-30-minute-setup-guide) • [Features](#-features) • [Platform Compatibility](#-platform-compatibility) • [Documentation](#-documentation) • [Architecture](#-architecture)
 
 </div>
 
@@ -19,6 +19,7 @@
 ## 📑 Table of Contents
 
 - [Overview](#-overview)
+- [Platform Compatibility](#-platform-compatibility)
 - [30-Minute Setup Guide](#-30-minute-setup-guide)
   - [Prerequisites](#prerequisites)
   - [Step 1: Sentry Account Setup (5 min)](#step-1-sentry-account-setup-5-min)
@@ -49,9 +50,47 @@
 
 ---
 
+## 🎯 Platform Compatibility
+
+> **📋 Matrice complète:** [docs/PLATFORM_COMPATIBILITY.md](docs/PLATFORM_COMPATIBILITY.md)
+
+### Types d'Applications Supportés
+
+| Plateforme | Support MySentry.Plugin | Package SDK | Notes |
+|------------|------------------------|-------------|-------|
+| **🌐 ASP.NET Core** | ✅ **Optimal** | `Sentry.AspNetCore` | Cible principale, toutes les features |
+| **📱 MAUI** | ⚠️ Adaptation | `Sentry.Maui` | Session tracking, native crash |
+| **🖥️ WPF/WinForms** | ⚠️ Adaptation | `Sentry` | Requiert `IsGlobalModeEnabled` |
+| **🌍 Blazor WASM** | ⚠️ Limité | `Sentry` | Pas de profiling ni sessions |
+| **☁️ AWS Lambda** | ⚠️ Adaptation | `Sentry.AspNetCore` | Requiert `FlushOnCompletedRequest` |
+| **☁️ Azure Functions** | ⚠️ Adaptation | `Sentry.Extensions.Logging` | Via OpenTelemetry |
+| **⚙️ Console** | ⚠️ Adaptation | `Sentry` | Pas de middleware auto |
+
+### Features par Type de Plateforme
+
+| Feature | Web Server | Desktop Client | Mobile | Serverless |
+|---------|------------|----------------|--------|------------|
+| 🔴 Error Monitoring | ✅ | ✅ | ✅ | ✅ |
+| 📊 Tracing | ✅ | ✅ | ✅ | ✅ |
+| 📈 Session Tracking | ❌ | ✅ | ✅ | ❌ |
+| 🔬 Profiling | 🆕 Alpha | 🆕 Alpha | ✅ iOS | ❌ |
+| 📝 Structured Logs | ✅ | ✅ | ✅ | ⚠️ |
+| ⏰ Crons | ✅ | ✅ | ✅ | ✅ |
+| 💬 User Feedback | ✅ | ✅ | ✅ | ✅ |
+
+> 📚 **Détail complet de chaque feature**: [docs/FEATURES_GUIDE.md](docs/FEATURES_GUIDE.md) - Configuration, impact UI, exemples visuels
+
+> ⚠️ **Session Tracking:** Limité aux applications client single-instance (WPF, WinForms, MAUI, Xamarin). **Non disponible** pour ASP.NET Core.
+
+> 🆕 **Profiling:** En Alpha sur .NET 8.0+. **Non disponible** sur UWP, Lambda, Azure Functions, Blazor WASM.
+
+---
+
 ## 🚀 30-Minute Setup Guide
 
 > **Goal**: Go from zero to production-ready Sentry integration with GitLab CI/CD
+> 
+> ⚠️ **Ce guide est optimisé pour ASP.NET Core.** Pour d'autres plateformes, voir [docs/PLATFORM_COMPATIBILITY.md](docs/PLATFORM_COMPATIBILITY.md)
 
 ### Prerequisites
 
@@ -64,7 +103,7 @@
 
 #### 1.1 Create Sentry Account
 
-1. Go to [sentry.io](https://sentry.io) and sign up
+1. Go to [sentry.6tm.eu](https://sentry.6tm.eu) and sign up
 2. Create a new organization (or use existing)
 3. Create a new project:
    - Select **.NET** as platform
@@ -76,7 +115,7 @@
 1. After project creation, you'll see your DSN
 2. Copy it - it looks like:
    ```
-   https://abc123@o123456.ingest.sentry.io/7890123
+   https://abc123@o123456.ingest.sentry.6tm.eu/7890123
    ```
 
 #### 1.3 Create Auth Token
@@ -124,7 +163,7 @@ Add to your `appsettings.json`:
 **Create `.env.example`** (commit this):
 ```bash
 # Sentry Configuration
-SENTRY_DSN=https://your-key@your-org.ingest.sentry.io/project-id
+SENTRY_DSN=https://your-key@your-org.ingest.sentry.6tm.eu/project-id
 SENTRY_AUTH_TOKEN=sntrys_eyJ...
 SENTRY_ORG=your-organization
 SENTRY_PROJECT=your-project-name
@@ -133,7 +172,7 @@ SENTRY_ENVIRONMENT=Development
 
 **Create `.env`** (DO NOT commit - add to `.gitignore`):
 ```bash
-SENTRY_DSN=https://actual-key@actual-org.ingest.sentry.io/actual-id
+SENTRY_DSN=https://actual-key@actual-org.ingest.sentry.6tm.eu/actual-id
 SENTRY_AUTH_TOKEN=sntrys_actual_token...
 ```
 
@@ -152,7 +191,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddMySentry(options =>
 {
     // Use environment variable or appsettings
-    options.Dsn = Environment.GetEnvironmentVariable("SENTRY_DSN") 
+    options.Dsn = Environment.GetEnvironmentVariable("SENTRY_DSN")
         ?? builder.Configuration["MySentry:Dsn"];
     options.Environment = builder.Environment.EnvironmentName;
     options.Release = "1.0.0";
@@ -178,39 +217,39 @@ app.Run();
 public class OrderService
 {
     private readonly ISentryPlugin _sentry;
-    
+
     public OrderService(ISentryPlugin sentry)
     {
         _sentry = sentry;
     }
-    
+
     public async Task<Order> ProcessOrderAsync(OrderRequest request)
     {
         // Start a transaction
         using var transaction = _sentry.StartTransaction(
-            "process-order", 
+            "process-order",
             "order.process");
-        
+
         try
         {
             // Add breadcrumb for debugging
             _sentry.AddBreadcrumb(
                 $"Processing order for customer {request.CustomerId}",
                 "order");
-            
+
             // Your business logic with spans
             using (var span = transaction.StartChild("validation", "Validate order"))
             {
                 ValidateOrder(request);
                 span.SetStatus(PluginSpanStatus.Ok);
             }
-            
+
             using (var span = transaction.StartChild("db.insert", "Save to database"))
             {
                 await SaveOrderAsync(request);
                 span.SetStatus(PluginSpanStatus.Ok);
             }
-            
+
             transaction.SetStatus(PluginSpanStatus.Ok);
             return order;
         }
@@ -352,15 +391,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddMySentry(options =>
 {
-    options.Dsn = "https://your-key@sentry.io/project";
+    options.Dsn = "https://your-key@sentry.6tm.eu/project";
     options.Environment = builder.Environment.EnvironmentName;
     options.EnableTracing = true;
     options.TracesSampleRate = 0.2;
     options.ProfilesSampleRate = 0.1;
-    
+
     // Configure tracing
     options.Tracing.EnableAutoInstrumentation = true;
-    
+
     // Configure profiling
     options.Profiling.Enabled = true;
 });
@@ -375,7 +414,7 @@ app.Run();
 ```json
 {
   "MySentry": {
-    "Dsn": "https://your-key@sentry.io/project",
+    "Dsn": "https://your-key@sentry.6tm.eu/project",
     "Environment": "Production",
     "EnableTracing": true,
     "TracesSampleRate": 0.2,
