@@ -143,6 +143,8 @@ deploy:staging:
   needs:
     - job: build
       artifacts: true
+    - job: sentry:create-release
+      optional: true
   script:
     - echo "Deploying to staging..."
     # Add your deployment commands here
@@ -167,6 +169,8 @@ deploy:production:
   needs:
     - job: build
       artifacts: true
+    - job: sentry:create-release
+      optional: true
     - job: deploy:staging
       optional: true
   script:
