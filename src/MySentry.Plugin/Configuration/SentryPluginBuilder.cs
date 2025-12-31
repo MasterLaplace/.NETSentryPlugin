@@ -271,6 +271,14 @@ public sealed class SentryPluginBuilder
     }
 
     /// <summary>
+    /// Adds a namespace prefix to include as "in-app" code.
+    /// Alias for IncludeInApp for compatibility.
+    /// </summary>
+    /// <param name="prefix">The namespace prefix.</param>
+    /// <returns>The builder for chaining.</returns>
+    public SentryPluginBuilder AddInAppInclude(string prefix) => IncludeInApp(prefix);
+
+    /// <summary>
     /// Adds a namespace prefix to exclude from "in-app" code.
     /// </summary>
     /// <param name="prefix">The namespace prefix.</param>
@@ -278,6 +286,18 @@ public sealed class SentryPluginBuilder
     public SentryPluginBuilder ExcludeFromInApp(string prefix)
     {
         _options.InAppExclude.Add(prefix);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a tag that will be applied to all events.
+    /// </summary>
+    /// <param name="key">The tag key.</param>
+    /// <param name="value">The tag value.</param>
+    /// <returns>The builder for chaining.</returns>
+    public SentryPluginBuilder AddTag(string key, string value)
+    {
+        _options.DefaultTags[key] = value;
         return this;
     }
 
