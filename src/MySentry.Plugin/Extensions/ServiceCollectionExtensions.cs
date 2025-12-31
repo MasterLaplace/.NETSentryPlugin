@@ -89,17 +89,23 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpContextAccessor();
 
-        // Register core services
-        services.AddSingleton<ISentryPlugin, SentryPlugin>();
-        services.AddSingleton<IErrorCapture>(sp => sp.GetRequiredService<ISentryPlugin>());
-        services.AddSingleton<IPerformanceMonitor>(sp => sp.GetRequiredService<ISentryPlugin>());
-        services.AddSingleton<IBreadcrumbTracker>(sp => sp.GetRequiredService<ISentryPlugin>());
-        services.AddSingleton<IUserContextProvider>(sp => sp.GetRequiredService<ISentryPlugin>());
-        services.AddSingleton<IScopeManager>(sp => sp.GetRequiredService<ISentryPlugin>());
-        services.AddSingleton<IUserFeedbackCapture>(sp =>
-            (IUserFeedbackCapture)sp.GetRequiredService<ISentryPlugin>());
-        services.AddSingleton<ICronMonitor>(sp =>
-            (ICronMonitor)sp.GetRequiredService<ISentryPlugin>());
+        // Register Sentry SDK, IHub, and plugin services only if DSN is provided
+        var dsn = builder.Options.Dsn;
+        if (!string.IsNullOrWhiteSpace(dsn))
+        {
+            services.AddSentry();
+            services.AddSingleton<IHub>(sp => sp.GetRequiredService<Sentry.IHub>());
+            services.AddSingleton<ISentryPlugin, SentryPlugin>();
+            services.AddSingleton<IErrorCapture>(sp => sp.GetRequiredService<ISentryPlugin>());
+            services.AddSingleton<IPerformanceMonitor>(sp => sp.GetRequiredService<ISentryPlugin>());
+            services.AddSingleton<IBreadcrumbTracker>(sp => sp.GetRequiredService<ISentryPlugin>());
+            services.AddSingleton<IUserContextProvider>(sp => sp.GetRequiredService<ISentryPlugin>());
+            services.AddSingleton<IScopeManager>(sp => sp.GetRequiredService<ISentryPlugin>());
+            services.AddSingleton<IUserFeedbackCapture>(sp =>
+                (IUserFeedbackCapture)sp.GetRequiredService<ISentryPlugin>());
+            services.AddSingleton<ICronMonitor>(sp =>
+                (ICronMonitor)sp.GetRequiredService<ISentryPlugin>());
+        }
 
         // Register enrichers
         foreach (var enricherType in builder.EnricherTypes)
