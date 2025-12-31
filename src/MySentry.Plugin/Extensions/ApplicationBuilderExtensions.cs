@@ -1,3 +1,4 @@
+#if ASPNETCORE
 using Microsoft.AspNetCore.Builder;
 using MySentry.Plugin.Middleware;
 
@@ -36,3 +37,4 @@ public static class ApplicationBuilderExtensions
         return app;
     }
 }
+#endif

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -27,7 +28,11 @@ public sealed class EnvironmentEnricher : IEventEnricher
         {
             Name = Assembly.GetEntryAssembly()?.GetName().Name,
             Version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString(),
+#if NET5_0_OR_GREATER
             ProcessId = Environment.ProcessId,
+#else
+            ProcessId = MySentry.Plugin.NetFrameworkPolyfills.GetProcessId(),
+#endif
             MachineName = Environment.MachineName,
             UserName = Environment.UserName,
             CurrentDirectory = Environment.CurrentDirectory

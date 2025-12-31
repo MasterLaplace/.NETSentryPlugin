@@ -103,7 +103,11 @@ public sealed class SentryPluginBuilder
     /// <returns>The builder for chaining.</returns>
     public SentryPluginBuilder WithSampleRate(double sampleRate)
     {
+    #if NET5_0_OR_GREATER
         _options.SampleRate = Math.Clamp(sampleRate, 0.0, 1.0);
+    #else
+        _options.SampleRate = MySentry.Plugin.NetFrameworkPolyfills.Clamp(sampleRate, 0.0, 1.0);
+    #endif
         return this;
     }
 
@@ -183,7 +187,11 @@ public sealed class SentryPluginBuilder
     public SentryPluginBuilder EnableTracing(double sampleRate)
     {
         _options.Tracing.Enabled = true;
+    #if NET5_0_OR_GREATER
         _options.Tracing.SampleRate = Math.Clamp(sampleRate, 0.0, 1.0);
+    #else
+        _options.Tracing.SampleRate = MySentry.Plugin.NetFrameworkPolyfills.Clamp(sampleRate, 0.0, 1.0);
+    #endif
         return this;
     }
 
@@ -208,7 +216,11 @@ public sealed class SentryPluginBuilder
     public SentryPluginBuilder EnableProfiling(double sampleRate)
     {
         _options.Profiling.Enabled = true;
+    #if NET5_0_OR_GREATER
         _options.Profiling.SampleRate = Math.Clamp(sampleRate, 0.0, 1.0);
+    #else
+        _options.Profiling.SampleRate = MySentry.Plugin.NetFrameworkPolyfills.Clamp(sampleRate, 0.0, 1.0);
+    #endif
         return this;
     }
 

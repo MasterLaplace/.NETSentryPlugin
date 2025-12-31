@@ -1,3 +1,4 @@
+#if ASPNETCORE
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -240,3 +241,4 @@ internal sealed class TypeExceptionFilter : IExceptionFilter
         return _exceptionType.IsInstanceOfType(ex);
     }
 }
+#endif

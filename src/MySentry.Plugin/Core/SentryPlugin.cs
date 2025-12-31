@@ -402,7 +402,7 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void CheckInOk(string monitorSlug, string? checkInId = null)
     {
-        Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId);
+        Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId!);
         Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.Ok, id);
         _logger.LogDebug("Check-in complete for monitor {MonitorSlug}", monitorSlug);
     }
@@ -410,7 +410,7 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void CheckInError(string monitorSlug, string? checkInId = null)
     {
-        Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId);
+        Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId!);
         Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.Error, id);
         _logger.LogDebug("Check-in failed for monitor {MonitorSlug}", monitorSlug);
     }

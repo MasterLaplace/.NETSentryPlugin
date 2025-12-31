@@ -19,7 +19,11 @@ public sealed class TracingBuilder
     /// <returns>The builder for chaining.</returns>
     public TracingBuilder WithSampleRate(double sampleRate)
     {
+    #if NET5_0_OR_GREATER
         _options.SampleRate = Math.Clamp(sampleRate, 0.0, 1.0);
+    #else
+        _options.SampleRate = MySentry.Plugin.NetFrameworkPolyfills.Clamp(sampleRate, 0.0, 1.0);
+    #endif
         return this;
     }
 

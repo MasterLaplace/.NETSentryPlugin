@@ -28,8 +28,13 @@ public sealed class CronJobMonitor : IDisposable, IAsyncDisposable
     /// <returns>A new cron job monitor.</returns>
     public static CronJobMonitor Start(ICronMonitor cronMonitor, string monitorSlug)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(cronMonitor);
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(cronMonitor);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+    #endif
 
         var checkInId = cronMonitor.CheckInProgress(monitorSlug);
         return new CronJobMonitor(cronMonitor, monitorSlug, checkInId);
@@ -43,8 +48,13 @@ public sealed class CronJobMonitor : IDisposable, IAsyncDisposable
     /// <returns>A new cron job monitor.</returns>
     public static CronJobMonitor Start(ICronMonitor cronMonitor, CronJobConfig config)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(cronMonitor);
         ArgumentNullException.ThrowIfNull(config);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(cronMonitor);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(config);
+    #endif
 
         var checkInId = cronMonitor.CheckInProgress(config.MonitorSlug);
         return new CronJobMonitor(cronMonitor, config.MonitorSlug, checkInId);
@@ -76,7 +86,11 @@ public sealed class CronJobMonitor : IDisposable, IAsyncDisposable
     /// <param name="action">The action to execute.</param>
     public void Execute(Action action)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(action);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(action);
+    #endif
 
         try
         {
@@ -98,7 +112,11 @@ public sealed class CronJobMonitor : IDisposable, IAsyncDisposable
     /// <returns>The result of the function.</returns>
     public T Execute<T>(Func<T> func)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(func);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(func);
+    #endif
 
         try
         {
@@ -119,7 +137,11 @@ public sealed class CronJobMonitor : IDisposable, IAsyncDisposable
     /// <param name="func">The async function to execute.</param>
     public async Task ExecuteAsync(Func<Task> func)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(func);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(func);
+    #endif
 
         try
         {
@@ -141,7 +163,11 @@ public sealed class CronJobMonitor : IDisposable, IAsyncDisposable
     /// <returns>The result of the function.</returns>
     public async Task<T> ExecuteAsync<T>(Func<Task<T>> func)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(func);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(func);
+    #endif
 
         try
         {
@@ -179,6 +205,10 @@ public sealed class CronJobMonitor : IDisposable, IAsyncDisposable
     public ValueTask DisposeAsync()
     {
         Dispose();
+#if NET5_0_OR_GREATER
         return ValueTask.CompletedTask;
+#else
+        return new ValueTask();
+#endif
     }
 }

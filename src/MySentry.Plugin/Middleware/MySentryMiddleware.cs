@@ -1,3 +1,4 @@
+#if ASPNETCORE
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -216,3 +217,4 @@ public sealed class MySentryMiddleware
         return value.Equals(pattern, StringComparison.OrdinalIgnoreCase);
     }
 }
+#endif

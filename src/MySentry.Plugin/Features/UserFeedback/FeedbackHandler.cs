@@ -25,7 +25,11 @@ public sealed class FeedbackHandler
     /// <returns>The result of the submission.</returns>
     public FeedbackResult Submit(FeedbackRequest request)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(request);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(request);
+    #endif
 
         if (string.IsNullOrWhiteSpace(request.Comments))
         {
@@ -55,9 +59,15 @@ public sealed class FeedbackHandler
         Exception exception,
         IErrorCapture errorCapture)
     {
+    #if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(exception);
         ArgumentNullException.ThrowIfNull(errorCapture);
+    #else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(request);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(exception);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(errorCapture);
+    #endif
 
         if (string.IsNullOrWhiteSpace(request.Comments))
         {

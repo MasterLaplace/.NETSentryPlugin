@@ -10,7 +10,7 @@ public interface IEventEnricher
     /// Gets the order in which this enricher should be executed.
     /// Lower values execute first.
     /// </summary>
-    int Order => 0;
+    int Order { get; }
 
     /// <summary>
     /// Enriches an event with additional context.

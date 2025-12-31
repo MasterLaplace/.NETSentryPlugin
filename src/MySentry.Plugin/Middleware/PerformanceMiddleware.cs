@@ -1,3 +1,4 @@
+#if ASPNETCORE
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -134,3 +135,4 @@ public sealed class PerformanceMiddleware
         return value.Equals(pattern, StringComparison.OrdinalIgnoreCase);
     }
 }
+#endif

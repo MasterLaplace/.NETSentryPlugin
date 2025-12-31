@@ -1,3 +1,4 @@
+#if ASPNETCORE
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -192,3 +193,4 @@ public static class ServiceCollectionExtensions
         target.Filtering.IgnoreUrls.AddRange(source.Filtering.IgnoreUrls);
     }
 }
+#endif

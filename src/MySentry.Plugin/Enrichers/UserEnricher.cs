@@ -1,3 +1,4 @@
+#if ASPNETCORE
 using Microsoft.AspNetCore.Http;
 using MySentry.Plugin.Abstractions;
 
@@ -62,3 +63,4 @@ public sealed class UserEnricher : IEventEnricher
         context.User = sentryUser;
     }
 }
+#endif

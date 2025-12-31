@@ -44,12 +44,12 @@ public sealed class ReleaseTracker
 
             if (!string.IsNullOrEmpty(environment))
             {
-                scope.SetTag("environment", environment);
+                scope.SetTag("environment", environment!);
             }
 
             if (!string.IsNullOrEmpty(commitSha))
             {
-                scope.SetTag("commit", commitSha);
+                scope.SetTag("commit", commitSha!);
             }
         });
     }

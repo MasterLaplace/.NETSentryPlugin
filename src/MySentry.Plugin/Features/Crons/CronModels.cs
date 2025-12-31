@@ -24,37 +24,37 @@ public enum CheckInStatus
 /// <summary>
 /// Configuration for a monitored cron job.
 /// </summary>
-public sealed record CronJobConfig
+public sealed class CronJobConfig
 {
     /// <summary>
     /// Gets or sets the monitor slug (unique identifier).
     /// </summary>
-    public required string MonitorSlug { get; init; }
+    public string MonitorSlug { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the cron schedule expression.
     /// </summary>
-    public string? Schedule { get; init; }
+    public string? Schedule { get; set; }
 
     /// <summary>
     /// Gets or sets the schedule type.
     /// </summary>
-    public ScheduleType ScheduleType { get; init; } = ScheduleType.Crontab;
+    public ScheduleType ScheduleType { get; set; } = ScheduleType.Crontab;
 
     /// <summary>
     /// Gets or sets the check-in margin in minutes.
     /// </summary>
-    public int? CheckInMarginMinutes { get; init; }
+    public int? CheckInMarginMinutes { get; set; }
 
     /// <summary>
     /// Gets or sets the max runtime in minutes.
     /// </summary>
-    public int? MaxRuntimeMinutes { get; init; }
+    public int? MaxRuntimeMinutes { get; set; }
 
     /// <summary>
     /// Gets or sets the timezone for the schedule.
     /// </summary>
-    public string? Timezone { get; init; }
+    public string? Timezone { get; set; }
 }
 
 /// <summary>

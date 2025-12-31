@@ -1,3 +1,4 @@
+#if ASPNETCORE
 using Microsoft.AspNetCore.Http;
 using MySentry.Plugin.Abstractions;
 
@@ -57,3 +58,4 @@ public sealed class RequestEnricher : IEventEnricher
         }
     }
 }
+#endif

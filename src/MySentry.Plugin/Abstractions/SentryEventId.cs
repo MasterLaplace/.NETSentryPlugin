@@ -4,9 +4,31 @@ namespace MySentry.Plugin.Abstractions;
 /// Represents a unique identifier for a Sentry event.
 /// Wraps the underlying Sentry SDK's event ID for type safety and abstraction.
 /// </summary>
-/// <param name="Value">The underlying GUID value of the event ID.</param>
-public readonly record struct SentryEventId(Guid Value)
+public readonly struct SentryEventId : IEquatable<SentryEventId>
 {
+    /// <summary>
+    /// Gets the underlying GUID value of the event ID.
+    /// </summary>
+    public Guid Value { get; }
+
+    /// <summary>
+    /// Creates a new SentryEventId with the specified value.
+    /// </summary>
+    /// <param name="value">The underlying GUID value.</param>
+    public SentryEventId(Guid value)
+    {
+        Value = value;
+    }
+
+    /// <summary>
+    /// Creates a new SentryEventId from a Sentry SDK event ID.
+    /// </summary>
+    /// <param name="sentryId">The Sentry SDK event ID.</param>
+    public SentryEventId(Sentry.SentryId sentryId)
+    {
+        Value = sentryId.Equals(Sentry.SentryId.Empty) ? Guid.Empty : Guid.Parse(sentryId.ToString());
+    }
+
     /// <summary>
     /// Gets an empty event ID, representing no event.
     /// </summary>
@@ -23,6 +45,15 @@ public readonly record struct SentryEventId(Guid Value)
     /// <returns>The hexadecimal string representation of the event ID.</returns>
     public override string ToString() => Value.ToString("N");
 
+    /// <inheritdoc/>
+    public bool Equals(SentryEventId other) => Value.Equals(other.Value);
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => obj is SentryEventId other && Equals(other);
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => Value.GetHashCode();
+
     /// <summary>
     /// Implicitly converts a <see cref="SentryEventId"/> to a <see cref="Guid"/>.
     /// </summary>
@@ -34,6 +65,16 @@ public readonly record struct SentryEventId(Guid Value)
     /// </summary>
     /// <param name="guid">The GUID to convert.</param>
     public static implicit operator SentryEventId(Guid guid) => new(guid);
+
+    /// <summary>
+    /// Equality operator.
+    /// </summary>
+    public static bool operator ==(SentryEventId left, SentryEventId right) => left.Equals(right);
+
+    /// <summary>
+    /// Inequality operator.
+    /// </summary>
+    public static bool operator !=(SentryEventId left, SentryEventId right) => !left.Equals(right);
 
     /// <summary>
     /// Creates a new random event ID.

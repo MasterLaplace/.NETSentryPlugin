@@ -126,4 +126,9 @@ public sealed class SentryPluginOptions
     /// Gets the list of namespace prefixes to exclude from "in-app" code.
     /// </summary>
     public List<string> InAppExclude { get; set; } = new();
+
+    /// <summary>
+    /// Gets the default tags to apply to all events.
+    /// </summary>
+    public Dictionary<string, string> DefaultTags { get; set; } = new();
 }

@@ -5,3 +5,12 @@ global using PluginSeverityLevel = MySentry.Plugin.Abstractions.SeverityLevel;
 global using PluginSpanStatus = MySentry.Plugin.Abstractions.SpanStatus;
 global using PluginUserFeedback = MySentry.Plugin.Abstractions.UserFeedback;
 global using PluginSentryEventId = MySentry.Plugin.Abstractions.SentryEventId;
+
+// Conditional usings for different frameworks
+#if ASPNETCORE
+global using IHub = Sentry.IHub;
+#elif ASPNET_CLASSIC
+global using IHub = Sentry.IHub;
+#else
+global using IHub = Sentry.IHub;
+#endif
