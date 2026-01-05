@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MySentry.Plugin.Configuration;
+using MySentry.Plugin.Utilities;
 using Sentry;
 using Sentry.AspNetCore;
 using Sentry.Extensibility;
@@ -22,6 +23,7 @@ public static class WebApplicationBuilderExtensions
     /// <returns>The web application builder for chaining.</returns>
     public static WebApplicationBuilder AddMySentry(this WebApplicationBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         return builder.AddMySentry(_ => { });
     }
 
@@ -35,6 +37,9 @@ public static class WebApplicationBuilderExtensions
         this WebApplicationBuilder builder,
         Action<SentryPluginBuilder> configure)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
         var pluginBuilder = new SentryPluginBuilder();
         configure(pluginBuilder);
         pluginBuilder.ApplyConfiguration();
@@ -126,23 +131,39 @@ public static class WebApplicationBuilderExtensions
         options.AttachStacktrace = pluginOptions.AttachStacktrace;
         options.ShutdownTimeout = pluginOptions.ShutdownTimeout;
 
+        // Request body capture - for ASP.NET Core, this is configured via SentryAspNetCoreOptions
+        // The SDK will pick this up through the middleware when SendDefaultPii is enabled
+        // Note: MaxRequestBodySize is set on SentryAspNetCoreOptions in ConfigureServices, not here
+
         // Tracing
         if (pluginOptions.Tracing.Enabled)
         {
             options.TracesSampleRate = pluginOptions.Tracing.SampleRate;
 
-            // Configure traces sampler for URL filtering
-            if (pluginOptions.Tracing.IgnoreUrls.Count > 0)
+            // Configure custom traces sampler if provided
+            if (pluginOptions.TracesSampler is not null)
+            {
+                var customSampler = pluginOptions.TracesSampler;
+                options.TracesSampler = context =>
+                {
+                    var pluginContext = new PluginTransactionSamplingContext
+                    {
+                        TransactionName = context.TransactionContext.Name,
+                        Operation = context.TransactionContext.Operation,
+                        ParentSampled = null // SDK 6.0 doesn't expose ParentSampled on ITransactionContext
+                    };
+                    return customSampler(pluginContext);
+                };
+            }
+            // Configure traces sampler for URL filtering (only if no custom sampler)
+            else if (pluginOptions.Tracing.IgnoreUrls.Count > 0)
             {
                 options.TracesSampler = context =>
                 {
                     var transactionName = context.TransactionContext.Name;
-                    foreach (var pattern in pluginOptions.Tracing.IgnoreUrls)
+                    if (PatternMatcher.MatchesAny(transactionName, pluginOptions.Tracing.IgnoreUrls))
                     {
-                        if (MatchesPattern(transactionName, pattern))
-                        {
-                            return 0.0;
-                        }
+                        return 0.0;
                     }
                     return pluginOptions.Tracing.SampleRate;
                 };
@@ -176,42 +197,134 @@ public static class WebApplicationBuilderExtensions
             }
         }
 
-        // BeforeSend for message filtering
-        if (pluginOptions.Filtering.IgnoreMessages.Count > 0)
+        // BeforeSend - combine message filtering with custom callback
+        var hasMessageFiltering = pluginOptions.Filtering.IgnoreMessages.Count > 0;
+        var hasCustomBeforeSend = pluginOptions.BeforeSend is not null;
+
+        if (hasMessageFiltering || hasCustomBeforeSend)
         {
             options.SetBeforeSend((sentryEvent, hint) =>
             {
-                // Filter by message
-                if (sentryEvent.Message?.Formatted is not null)
+                // Filter by message patterns
+                if (hasMessageFiltering && sentryEvent.Message?.Formatted is not null)
                 {
-                    foreach (var pattern in pluginOptions.Filtering.IgnoreMessages)
+                    if (PatternMatcher.MatchesAny(sentryEvent.Message.Formatted, pluginOptions.Filtering.IgnoreMessages))
                     {
-                        if (sentryEvent.Message.Formatted.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return null;
-                        }
+                        return null;
+                    }
+                }
+
+                // Apply custom BeforeSend callback
+                if (hasCustomBeforeSend)
+                {
+                    var eventInfo = new EventProcessingInfo
+                    {
+                        Exception = sentryEvent.Exception,
+                        Message = sentryEvent.Message?.Formatted,
+                        Level = MapToPluginSeverityLevel(sentryEvent.Level),
+                        TransactionName = sentryEvent.TransactionName,
+                        Environment = sentryEvent.Environment
+                    };
+
+                    // Copy tags
+                    foreach (var tag in sentryEvent.Tags)
+                    {
+                        eventInfo.Tags[tag.Key] = tag.Value;
+                    }
+
+                    // Apply callback
+                    if (!pluginOptions.BeforeSend!(eventInfo))
+                    {
+                        return null;
+                    }
+
+                    // Apply modified tags back
+                    foreach (var tag in eventInfo.Tags)
+                    {
+                        sentryEvent.SetTag(tag.Key, tag.Value);
+                    }
+
+                    // Apply extra data
+                    foreach (var extra in eventInfo.Extra)
+                    {
+                        sentryEvent.SetExtra(extra.Key, extra.Value);
                     }
                 }
 
                 return sentryEvent;
             });
         }
+
+        // BeforeBreadcrumb callback
+        if (pluginOptions.BeforeBreadcrumb is not null)
+        {
+            var customCallback = pluginOptions.BeforeBreadcrumb;
+            options.SetBeforeBreadcrumb((breadcrumb, hint) =>
+            {
+                var info = new BreadcrumbProcessingInfo
+                {
+                    Message = breadcrumb.Message,
+                    Category = breadcrumb.Category,
+                    Type = breadcrumb.Type,
+                    Level = MapToPluginBreadcrumbLevel(breadcrumb.Level),
+                    Timestamp = breadcrumb.Timestamp
+                };
+
+                // Copy data
+                if (breadcrumb.Data is not null)
+                {
+                    foreach (var kvp in breadcrumb.Data)
+                    {
+                        info.Data[kvp.Key] = kvp.Value;
+                    }
+                }
+
+                // Apply callback
+                if (!customCallback(info))
+                {
+                    return null;
+                }
+
+                // Return modified breadcrumb
+                return new Breadcrumb(
+                    info.Message ?? string.Empty,
+                    info.Type ?? "default",
+                    info.Data.Count > 0 ? info.Data : null,
+                    info.Category,
+                    MapFromPluginBreadcrumbLevel(info.Level));
+            });
+        }
     }
 
-    private static bool MatchesPattern(string value, string pattern)
+    private static PluginSeverityLevel MapToPluginSeverityLevel(SentryLevel? level) => level switch
     {
-        if (pattern.EndsWith('*'))
-        {
-            return value.StartsWith(pattern[..^1], StringComparison.OrdinalIgnoreCase);
-        }
+        SentryLevel.Debug => PluginSeverityLevel.Debug,
+        SentryLevel.Info => PluginSeverityLevel.Info,
+        SentryLevel.Warning => PluginSeverityLevel.Warning,
+        SentryLevel.Error => PluginSeverityLevel.Error,
+        SentryLevel.Fatal => PluginSeverityLevel.Fatal,
+        _ => PluginSeverityLevel.Info
+    };
 
-        if (pattern.StartsWith('*'))
-        {
-            return value.EndsWith(pattern[1..], StringComparison.OrdinalIgnoreCase);
-        }
+    private static PluginBreadcrumbLevel MapToPluginBreadcrumbLevel(BreadcrumbLevel level) => level switch
+    {
+        BreadcrumbLevel.Debug => PluginBreadcrumbLevel.Debug,
+        BreadcrumbLevel.Info => PluginBreadcrumbLevel.Info,
+        BreadcrumbLevel.Warning => PluginBreadcrumbLevel.Warning,
+        BreadcrumbLevel.Error => PluginBreadcrumbLevel.Error,
+        BreadcrumbLevel.Fatal => PluginBreadcrumbLevel.Fatal,
+        _ => PluginBreadcrumbLevel.Info
+    };
 
-        return value.Equals(pattern, StringComparison.OrdinalIgnoreCase);
-    }
+    private static BreadcrumbLevel MapFromPluginBreadcrumbLevel(PluginBreadcrumbLevel level) => level switch
+    {
+        PluginBreadcrumbLevel.Debug => BreadcrumbLevel.Debug,
+        PluginBreadcrumbLevel.Info => BreadcrumbLevel.Info,
+        PluginBreadcrumbLevel.Warning => BreadcrumbLevel.Warning,
+        PluginBreadcrumbLevel.Error => BreadcrumbLevel.Error,
+        PluginBreadcrumbLevel.Fatal => BreadcrumbLevel.Fatal,
+        _ => BreadcrumbLevel.Info
+    };
 
     private static SentryLevel MapDiagnosticLevel(DiagnosticLevel level) => level switch
     {
@@ -221,6 +334,15 @@ public static class WebApplicationBuilderExtensions
         DiagnosticLevel.Error => SentryLevel.Error,
         DiagnosticLevel.Fatal => SentryLevel.Fatal,
         _ => SentryLevel.Warning
+    };
+
+    private static Sentry.Extensibility.RequestSize MapRequestBodySize(RequestBodySize size) => size switch
+    {
+        RequestBodySize.None => Sentry.Extensibility.RequestSize.None,
+        RequestBodySize.Small => Sentry.Extensibility.RequestSize.Small,
+        RequestBodySize.Medium => Sentry.Extensibility.RequestSize.Medium,
+        RequestBodySize.Always => Sentry.Extensibility.RequestSize.Always,
+        _ => Sentry.Extensibility.RequestSize.None
     };
 }
 
@@ -233,6 +355,7 @@ internal sealed class TypeExceptionFilter : IExceptionFilter
 
     public TypeExceptionFilter(Type exceptionType)
     {
+        ArgumentNullException.ThrowIfNull(exceptionType);
         _exceptionType = exceptionType;
     }
 

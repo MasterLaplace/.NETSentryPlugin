@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MySentry.Plugin.Abstractions;
 using MySentry.Plugin.Configuration;
+using MySentry.Plugin.Utilities;
 
 namespace MySentry.Plugin.Middleware;
 
@@ -29,6 +30,10 @@ public sealed class PerformanceMiddleware
         ILogger<PerformanceMiddleware> logger,
         IOptions<SentryPluginOptions> options)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(options);
+
         _next = next;
         _logger = logger;
         _options = options.Value;
@@ -42,6 +47,9 @@ public sealed class PerformanceMiddleware
     /// <returns>A task representing the middleware execution.</returns>
     public async Task InvokeAsync(HttpContext context, ISentryPlugin sentryPlugin)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(sentryPlugin);
+
         if (!_options.Tracing.Enabled || !_options.Tracing.TraceAllRequests)
         {
             await _next(context).ConfigureAwait(false);
@@ -49,7 +57,7 @@ public sealed class PerformanceMiddleware
         }
 
         var requestPath = context.Request.Path.Value ?? "/";
-        if (ShouldIgnore(requestPath))
+        if (PatternMatcher.MatchesAny(requestPath, _options.Tracing.IgnoreUrls))
         {
             await _next(context).ConfigureAwait(false);
             return;
@@ -96,19 +104,6 @@ public sealed class PerformanceMiddleware
         }
     }
 
-    private bool ShouldIgnore(string path)
-    {
-        foreach (var pattern in _options.Tracing.IgnoreUrls)
-        {
-            if (MatchesPattern(path, pattern))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private static string GetTransactionName(HttpContext context)
     {
         var endpoint = context.GetEndpoint();
@@ -118,21 +113,6 @@ public sealed class PerformanceMiddleware
         }
 
         return context.Request.Path.Value ?? "/";
-    }
-
-    private static bool MatchesPattern(string value, string pattern)
-    {
-        if (pattern.EndsWith('*'))
-        {
-            return value.StartsWith(pattern[..^1], StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (pattern.StartsWith('*'))
-        {
-            return value.EndsWith(pattern[1..], StringComparison.OrdinalIgnoreCase);
-        }
-
-        return value.Equals(pattern, StringComparison.OrdinalIgnoreCase);
     }
 }
 #endif

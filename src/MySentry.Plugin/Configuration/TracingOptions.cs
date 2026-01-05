@@ -2,6 +2,7 @@ namespace MySentry.Plugin.Configuration;
 
 /// <summary>
 /// Configuration options for distributed tracing.
+/// Updated for Sentry SDK 6.0.0.
 /// </summary>
 public sealed class TracingOptions
 {
@@ -29,6 +30,12 @@ public sealed class TracingOptions
     /// Gets or sets a value indicating whether to trace outgoing HTTP requests.
     /// </summary>
     public bool TraceHttpClients { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to propagate W3C traceparent header on outgoing requests.
+    /// New in Sentry SDK 6.0.0. When enabled, outgoing requests will include the W3C traceparent header.
+    /// </summary>
+    public bool PropagateTraceparent { get; set; }
 
     /// <summary>
     /// Gets the list of URL patterns to ignore when tracing.

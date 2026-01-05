@@ -4,7 +4,7 @@
 
 [defaults]
 # Your Sentry organization slug (found in your Sentry URL)
-org = your-organization
+org = 6tm
 
 # Your Sentry project slug
 project = mysentryapp

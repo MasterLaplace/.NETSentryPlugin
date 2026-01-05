@@ -446,7 +446,8 @@ internal sealed class SentrySdkHubAdapter : IHub
     public SentryId CaptureException(Exception exception, Scope? scope = null) => SentrySdk.CaptureException(exception);
     public SentryId CaptureException(Exception exception, Action<Scope> configureScope) => SentrySdk.CaptureException(exception, configureScope);
 
-    public void CaptureUserFeedback(Sentry.UserFeedback userFeedback) => SentrySdk.CaptureUserFeedback(userFeedback);
+    [Obsolete(\"Use CaptureFeedback instead. CaptureUserFeedback was removed in Sentry SDK 6.0.0.\")]
+    public void CaptureUserFeedback(Sentry.UserFeedback userFeedback) => SentrySdk.CaptureFeedback(userFeedback.Comments, userFeedback.Email, userFeedback.Name, userFeedback.EventId);
 
     public void AddBreadcrumb(Breadcrumb breadcrumb, SentryHint? hint = null) =>
         SentrySdk.AddBreadcrumb(breadcrumb.Message ?? string.Empty, breadcrumb.Category, breadcrumb.Type, breadcrumb.Data?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), breadcrumb.Level);

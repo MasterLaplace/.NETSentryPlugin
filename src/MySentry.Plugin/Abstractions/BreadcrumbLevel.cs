@@ -27,7 +27,14 @@ public enum BreadcrumbLevel
     Error = 3,
 
     /// <summary>
-    /// Critical breadcrumb, indicating a severe failure.
+    /// Fatal breadcrumb, indicating a severe failure.
+    /// Renamed from Critical in Sentry SDK 6.0.0 for consistency with other Sentry SDKs.
     /// </summary>
-    Critical = 4
+    Fatal = 4,
+
+    /// <summary>
+    /// Alias for Fatal to maintain backward compatibility.
+    /// </summary>
+    [Obsolete("Use BreadcrumbLevel.Fatal instead. Critical was renamed to Fatal in Sentry SDK 6.0.0.")]
+    Critical = Fatal
 }

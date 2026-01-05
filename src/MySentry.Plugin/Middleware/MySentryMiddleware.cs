@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using MySentry.Plugin.Abstractions;
 using MySentry.Plugin.Configuration;
 using MySentry.Plugin.Enrichers;
+using MySentry.Plugin.Utilities;
 
 namespace MySentry.Plugin.Middleware;
 
@@ -32,6 +33,11 @@ public sealed class MySentryMiddleware
         IOptions<SentryPluginOptions> options,
         IEnumerable<IEventEnricher> enrichers)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(enrichers);
+
         _next = next;
         _logger = logger;
         _options = options.Value;
@@ -46,6 +52,9 @@ public sealed class MySentryMiddleware
     /// <returns>A task representing the middleware execution.</returns>
     public async Task InvokeAsync(HttpContext context, ISentryPlugin sentryPlugin)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(sentryPlugin);
+
         if (ShouldIgnoreRequest(context))
         {
             await _next(context).ConfigureAwait(false);
@@ -90,6 +99,12 @@ public sealed class MySentryMiddleware
                     scope.SetTag("http.status_code", context.Response.StatusCode.ToString());
                     scope.SetTag("http.method", requestMethod);
                     scope.SetTag("http.path", requestPath);
+
+                    // Capture response headers if enabled
+                    if (_options.CaptureResponseHeaders)
+                    {
+                        CaptureResponseHeaders(context, scope);
+                    }
                 });
             }
         }
@@ -104,6 +119,12 @@ public sealed class MySentryMiddleware
                 scope.SetTag("http.method", requestMethod);
                 scope.SetTag("http.path", requestPath);
                 scope.SetExtra("request.duration_ms", stopwatch.ElapsedMilliseconds);
+
+                // Capture response headers if enabled
+                if (_options.CaptureResponseHeaders)
+                {
+                    CaptureResponseHeaders(context, scope);
+                }
 
                 // Apply enrichers
                 var enrichmentContext = new EventEnrichmentContext(ex, PluginSeverityLevel.Error);
@@ -149,24 +170,18 @@ public sealed class MySentryMiddleware
     {
         var path = context.Request.Path.Value ?? "/";
 
-        foreach (var pattern in _options.Filtering.IgnoreUrls)
+        if (PatternMatcher.MatchesAny(path, _options.Filtering.IgnoreUrls))
         {
-            if (MatchesPattern(path, pattern))
-            {
-                return true;
-            }
+            return true;
         }
 
         // Check user agent
         var userAgent = context.Request.Headers.UserAgent.ToString();
         if (!string.IsNullOrEmpty(userAgent))
         {
-            foreach (var pattern in _options.Filtering.IgnoreUserAgents)
+            if (PatternMatcher.MatchesAny(userAgent, _options.Filtering.IgnoreUserAgents))
             {
-                if (MatchesPattern(userAgent, pattern))
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
@@ -190,31 +205,33 @@ public sealed class MySentryMiddleware
                _options.Filtering.IgnoreExceptionTypes.Contains(exceptionTypeName);
     }
 
-    private static bool MatchesPattern(string value, string pattern)
+    private void CaptureResponseHeaders(HttpContext context, ISentryScope scope)
     {
-        if (pattern.EndsWith('*'))
-        {
-            var prefix = pattern[..^1];
-            return value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
-        }
+        var headersToCapture = _options.ResponseHeadersToCapture;
+        var responseHeaders = new Dictionary<string, string>();
 
-        if (pattern.StartsWith('*'))
+        foreach (var headerName in headersToCapture)
         {
-            var suffix = pattern[1..];
-            return value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (pattern.Contains('*'))
-        {
-            var parts = pattern.Split('*');
-            if (parts.Length == 2)
+            if (context.Response.Headers.TryGetValue(headerName, out var values))
             {
-                return value.StartsWith(parts[0], StringComparison.OrdinalIgnoreCase) &&
-                       value.EndsWith(parts[1], StringComparison.OrdinalIgnoreCase);
+                var value = values.ToString();
+
+                // Check if header should be scrubbed
+                if (_options.DataScrubbing.Enabled &&
+                    _options.DataScrubbing.SensitiveHeaders.Any(h =>
+                        h.Equals(headerName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    value = _options.DataScrubbing.ReplacementText;
+                }
+
+                responseHeaders[headerName] = value;
             }
         }
 
-        return value.Equals(pattern, StringComparison.OrdinalIgnoreCase);
+        if (responseHeaders.Count > 0)
+        {
+            scope.SetContext("Response Headers", responseHeaders);
+        }
     }
 }
 #endif

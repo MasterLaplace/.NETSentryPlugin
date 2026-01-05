@@ -27,6 +27,10 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
         IOptions<SentryPluginOptions> options,
         ILogger<SentryPlugin> logger)
     {
+        ArgumentNullException.ThrowIfNull(hub);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+
         _hub = hub;
         _options = options.Value;
         _logger = logger;
@@ -56,6 +60,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task FlushAsync(TimeSpan timeout, CancellationToken cancellationToken = default)
     {
+        // Note: Sentry SDK 6.0 FlushAsync doesn't accept CancellationToken
+        // We respect the CancellationToken by checking it before the async operation
+        cancellationToken.ThrowIfCancellationRequested();
         await _hub.FlushAsync(timeout).ConfigureAwait(false);
     }
 
@@ -64,6 +71,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureException(Exception exception)
     {
+        ArgumentNullException.ThrowIfNull(exception);
+
         var eventId = _hub.CaptureException(exception);
         _logger.LogDebug("Captured exception with event ID {EventId}", eventId);
         return new PluginSentryEventId(eventId);
@@ -72,6 +81,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureException(Exception exception, Action<ISentryScope> configureScope)
     {
+        ArgumentNullException.ThrowIfNull(exception);
+        ArgumentNullException.ThrowIfNull(configureScope);
+
         var eventId = _hub.CaptureException(exception, scope =>
         {
             configureScope(new SentryScopeWrapper(scope));
@@ -83,6 +95,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureMessage(string message, PluginSeverityLevel level = PluginSeverityLevel.Info)
     {
+        ArgumentException.ThrowIfNullOrEmpty(message);
+
         var sentryLevel = SentryScopeWrapper.MapSeverityLevel(level);
         var eventId = _hub.CaptureMessage(message, sentryLevel);
         _logger.LogDebug("Captured message with event ID {EventId}", eventId);
@@ -92,6 +106,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureMessage(string message, PluginSeverityLevel level, Action<ISentryScope> configureScope)
     {
+        ArgumentException.ThrowIfNullOrEmpty(message);
+        ArgumentNullException.ThrowIfNull(configureScope);
+
         var sentryLevel = SentryScopeWrapper.MapSeverityLevel(level);
         var eventId = _hub.CaptureMessage(message, scope =>
         {
@@ -109,6 +126,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public ITransactionTracker StartTransaction(string name, string operation)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(operation);
+
         var transaction = _hub.StartTransaction(name, operation);
         _hub.ConfigureScope(scope => scope.Transaction = transaction);
         _logger.LogDebug("Started transaction {Name} ({Operation})", name, operation);
@@ -118,6 +138,10 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public ITransactionTracker StartTransaction(string name, string operation, Action<TransactionOptions> configure)
     {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(operation);
+        ArgumentNullException.ThrowIfNull(configure);
+
         var options = new TransactionOptions();
         configure(options);
 
@@ -183,6 +207,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
         string? type = null,
         PluginBreadcrumbLevel level = PluginBreadcrumbLevel.Info)
     {
+        ArgumentException.ThrowIfNullOrEmpty(message);
+
         _hub.AddBreadcrumb(
             message,
             category,
@@ -198,6 +224,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
         IReadOnlyDictionary<string, string>? data,
         PluginBreadcrumbLevel level = PluginBreadcrumbLevel.Info)
     {
+        ArgumentException.ThrowIfNullOrEmpty(message);
+
         _hub.AddBreadcrumb(
             message,
             category,
@@ -209,6 +237,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void AddHttpBreadcrumb(string method, string url, int? statusCode = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(method);
+        ArgumentException.ThrowIfNullOrEmpty(url);
+
         var data = new Dictionary<string, string>
         {
             ["method"] = method,
@@ -231,6 +262,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void AddNavigationBreadcrumb(string from, string to)
     {
+        ArgumentException.ThrowIfNullOrEmpty(from);
+        ArgumentException.ThrowIfNullOrEmpty(to);
+
         var data = new Dictionary<string, string>
         {
             ["from"] = from,
@@ -248,6 +282,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void AddQueryBreadcrumb(string query, string category = "query")
     {
+        ArgumentException.ThrowIfNullOrEmpty(query);
+
         _hub.AddBreadcrumb(
             query,
             category,
@@ -262,6 +298,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void SetUser(PluginSentryUser user)
     {
+        ArgumentNullException.ThrowIfNull(user);
+
         _currentUser = user;
         _hub.ConfigureScope(scope =>
         {
@@ -273,12 +311,16 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void SetUserId(string userId)
     {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+
         SetUser(new PluginSentryUser(userId));
     }
 
     /// <inheritdoc/>
     public void SetUser(string userId, string? email = null, string? username = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+
         SetUser(new PluginSentryUser
         {
             Id = userId,
@@ -308,6 +350,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void ConfigureScope(Action<ISentryScope> configureScope)
     {
+        ArgumentNullException.ThrowIfNull(configureScope);
+
         _hub.ConfigureScope(scope =>
         {
             configureScope(new SentryScopeWrapper(scope));
@@ -317,6 +361,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task ConfigureScopeAsync(Func<ISentryScope, Task> configureScope)
     {
+        ArgumentNullException.ThrowIfNull(configureScope);
+
         await _hub.ConfigureScopeAsync(async scope =>
         {
             await configureScope(new SentryScopeWrapper(scope)).ConfigureAwait(false);
@@ -338,6 +384,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void WithScope(Action<ISentryScope> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         using var _ = _hub.PushScope();
         _hub.ConfigureScope(scope =>
         {
@@ -348,6 +396,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task WithScopeAsync(Func<ISentryScope, Task> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         using var _ = _hub.PushScope();
         await _hub.ConfigureScopeAsync(async scope =>
         {
@@ -360,31 +410,36 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     #region IUserFeedbackCapture
 
     /// <inheritdoc/>
-    public void CaptureFeedback(PluginSentryEventId eventId, string name, string email, string comments)
+    public PluginSentryEventId CaptureFeedback(PluginSentryEventId eventId, string name, string email, string comments)
     {
-        Sentry.SentrySdk.CaptureUserFeedback(
-            new Sentry.SentryId(eventId.Value),
-            email,
+        // Sentry SDK 6.0.0: CaptureUserFeedback removed, use CaptureFeedback instead
+        // New signature returns SentryId and has out parameter for result
+        var feedbackId = Sentry.SentrySdk.CaptureFeedback(
             comments,
-            name);
-        _logger.LogDebug("Captured user feedback for event {EventId}", eventId);
+            email,
+            name,
+            associatedEventId: new Sentry.SentryId(eventId.Value));
+        _logger.LogDebug("Captured user feedback with ID {FeedbackId} for event {EventId}", feedbackId, eventId);
+        return new PluginSentryEventId(feedbackId);
     }
 
     /// <inheritdoc/>
-    public void CaptureFeedback(PluginUserFeedback feedback)
+    public PluginSentryEventId CaptureFeedback(PluginUserFeedback feedback)
     {
-        Sentry.SentrySdk.CaptureUserFeedback(
-            new Sentry.SentryId(feedback.EventId.Value),
-            feedback.Email ?? string.Empty,
+        var feedbackId = Sentry.SentrySdk.CaptureFeedback(
             feedback.Comments,
-            feedback.Name ?? string.Empty);
-        _logger.LogDebug("Captured user feedback for event {EventId}", feedback.EventId);
+            feedback.Email,
+            feedback.Name,
+            associatedEventId: new Sentry.SentryId(feedback.EventId.Value));
+        _logger.LogDebug("Captured user feedback with ID {FeedbackId} for event {EventId}", feedbackId, feedback.EventId);
+        return new PluginSentryEventId(feedbackId);
     }
 
     /// <inheritdoc/>
-    public void CaptureUserFeedback(PluginSentryEventId eventId, string? email, string comments, string? name = null)
+    [Obsolete("Use CaptureFeedback instead. CaptureUserFeedback was removed in Sentry SDK 6.0.0.")]
+    public PluginSentryEventId CaptureUserFeedback(PluginSentryEventId eventId, string? email, string comments, string? name = null)
     {
-        CaptureFeedback(eventId, name ?? string.Empty, email ?? string.Empty, comments);
+        return CaptureFeedback(eventId, name ?? string.Empty, email ?? string.Empty, comments);
     }
 
     #endregion
@@ -394,6 +449,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public string CheckInProgress(string monitorSlug)
     {
+        ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+
         var checkInId = Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.InProgress);
         _logger.LogDebug("Check-in started for monitor {MonitorSlug} with ID {CheckInId}", monitorSlug, checkInId);
         return checkInId.ToString();
@@ -402,6 +459,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void CheckInOk(string monitorSlug, string? checkInId = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+
         Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId!);
         Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.Ok, id);
         _logger.LogDebug("Check-in complete for monitor {MonitorSlug}", monitorSlug);
@@ -410,6 +469,8 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void CheckInError(string monitorSlug, string? checkInId = null)
     {
+        ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+
         Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId!);
         Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.Error, id);
         _logger.LogDebug("Check-in failed for monitor {MonitorSlug}", monitorSlug);
@@ -418,6 +479,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void ExecuteJob(string monitorSlug, Action job)
     {
+        ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+        ArgumentNullException.ThrowIfNull(job);
+
         var checkInId = CheckInProgress(monitorSlug);
         try
         {
@@ -434,6 +498,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task ExecuteJobAsync(string monitorSlug, Func<Task> job)
     {
+        ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+        ArgumentNullException.ThrowIfNull(job);
+
         var checkInId = CheckInProgress(monitorSlug);
         try
         {
@@ -450,6 +517,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public T ExecuteJob<T>(string monitorSlug, Func<T> job)
     {
+        ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+        ArgumentNullException.ThrowIfNull(job);
+
         var checkInId = CheckInProgress(monitorSlug);
         try
         {
@@ -467,6 +537,9 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task<T> ExecuteJobAsync<T>(string monitorSlug, Func<Task<T>> job)
     {
+        ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+        ArgumentNullException.ThrowIfNull(job);
+
         var checkInId = CheckInProgress(monitorSlug);
         try
         {
@@ -488,18 +561,26 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void SetTag(string key, string value)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentException.ThrowIfNullOrEmpty(value);
+
         _hub.ConfigureScope(scope => scope.SetTag(key, value));
     }
 
     /// <inheritdoc/>
     public void SetExtra(string key, object? value)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+
         _hub.ConfigureScope(scope => scope.SetExtra(key, value));
     }
 
     /// <inheritdoc/>
     public void SetContext(string key, object value)
     {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        ArgumentNullException.ThrowIfNull(value);
+
         _hub.ConfigureScope(scope => scope.Contexts[key] = value);
     }
 

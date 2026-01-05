@@ -308,7 +308,161 @@ public sealed class SentryPluginBuilder
     /// <returns>The builder for chaining.</returns>
     public SentryPluginBuilder Configure(Action<SentryPluginOptions> configure)
     {
+        ArgumentNullException.ThrowIfNull(configure);
         _configurationActions.Add(configure);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a callback to be invoked before events are sent to Sentry.
+    /// </summary>
+    /// <param name="beforeSend">The callback. Return false to discard the event.</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <remarks>
+    /// Use this callback to scrub sensitive data, add custom context, or filter events.
+    /// <example>
+    /// <code>
+    /// builder.SetBeforeSend(info =>
+    /// {
+    ///     // Scrub sensitive data
+    ///     if (info.Message?.Contains("password") == true)
+    ///     {
+    ///         info.Message = "[REDACTED]";
+    ///     }
+    ///
+    ///     // Add custom tag
+    ///     info.Tags["custom"] = "value";
+    ///
+    ///     // Return true to send, false to discard
+    ///     return true;
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public SentryPluginBuilder SetBeforeSend(SentryCallbacks.BeforeSendCallback beforeSend)
+    {
+        ArgumentNullException.ThrowIfNull(beforeSend);
+        _options.BeforeSend = beforeSend;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a callback to be invoked before breadcrumbs are captured.
+    /// </summary>
+    /// <param name="beforeBreadcrumb">The callback. Return false to discard the breadcrumb.</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <remarks>
+    /// Use this callback to filter noisy breadcrumbs or scrub sensitive data.
+    /// <example>
+    /// <code>
+    /// builder.SetBeforeBreadcrumb(info =>
+    /// {
+    ///     // Filter out debug breadcrumbs
+    ///     if (info.Level == PluginBreadcrumbLevel.Debug)
+    ///         return false;
+    ///
+    ///     // Scrub sensitive data
+    ///     if (info.Message?.Contains("secret") == true)
+    ///         info.Message = "[REDACTED]";
+    ///
+    ///     return true;
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public SentryPluginBuilder SetBeforeBreadcrumb(SentryCallbacks.BeforeBreadcrumbCallback beforeBreadcrumb)
+    {
+        ArgumentNullException.ThrowIfNull(beforeBreadcrumb);
+        _options.BeforeBreadcrumb = beforeBreadcrumb;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets a dynamic transaction sampler callback.
+    /// </summary>
+    /// <param name="tracesSampler">The sampler callback. Return a rate (0.0-1.0) or null for default.</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <remarks>
+    /// This is mutually exclusive with the static TracesSampleRate.
+    /// Use this for dynamic sampling based on transaction context.
+    /// <example>
+    /// <code>
+    /// builder.SetTracesSampler(context =>
+    /// {
+    ///     // Don't sample health checks
+    ///     if (context.TransactionName.Contains("/health"))
+    ///         return 0.0;
+    ///
+    ///     // Higher rate for payment operations
+    ///     if (context.TransactionName.Contains("/payment"))
+    ///         return 1.0;
+    ///
+    ///     // Inherit parent decision for distributed tracing
+    ///     if (context.ParentSampled.HasValue)
+    ///         return context.ParentSampled.Value ? 1.0 : 0.0;
+    ///
+    ///     // Default rate
+    ///     return 0.2;
+    /// });
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public SentryPluginBuilder SetTracesSampler(SentryCallbacks.TracesSamplerCallback tracesSampler)
+    {
+        ArgumentNullException.ThrowIfNull(tracesSampler);
+        _options.TracesSampler = tracesSampler;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures data scrubbing options for sensitive data handling.
+    /// </summary>
+    /// <param name="configure">Action to configure data scrubbing options.</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.ConfigureDataScrubbing(scrubbing =>
+    /// {
+    ///     scrubbing.SensitiveFields.Add("customSecret");
+    ///     scrubbing.SensitivePatterns.Add(@"\bAPI-[A-Z0-9]{32}\b");
+    /// });
+    /// </code>
+    /// </example>
+    public SentryPluginBuilder ConfigureDataScrubbing(Action<DataScrubbingOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        configure(_options.DataScrubbing);
+        return this;
+    }
+
+    /// <summary>
+    /// Enables capture of response headers in error events.
+    /// </summary>
+    /// <param name="enabled">Whether to capture response headers.</param>
+    /// <returns>The builder for chaining.</returns>
+    public SentryPluginBuilder CaptureResponseHeaders(bool enabled = true)
+    {
+        _options.CaptureResponseHeaders = enabled;
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the request body capture size.
+    /// </summary>
+    /// <param name="size">The maximum size of request bodies to capture.</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <remarks>
+    /// Request body capture requires <c>SendDefaultPii</c> to be enabled for full functionality.
+    /// <list type="bullet">
+    ///   <item><description><c>None</c> - Don't capture request bodies</description></item>
+    ///   <item><description><c>Small</c> - Capture up to 1KB</description></item>
+    ///   <item><description><c>Medium</c> - Capture up to 10KB</description></item>
+    ///   <item><description><c>Always</c> - Always capture (up to SDK limit)</description></item>
+    /// </list>
+    /// </remarks>
+    public SentryPluginBuilder WithMaxRequestBodySize(RequestBodySize size)
+    {
+        _options.MaxRequestBodySize = size;
         return this;
     }
 

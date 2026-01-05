@@ -131,4 +131,60 @@ public sealed class SentryPluginOptions
     /// Gets the default tags to apply to all events.
     /// </summary>
     public Dictionary<string, string> DefaultTags { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the data scrubbing options for sensitive data handling.
+    /// </summary>
+    public DataScrubbingOptions DataScrubbing { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to capture response headers in error events.
+    /// </summary>
+    public bool CaptureResponseHeaders { get; set; }
+
+    /// <summary>
+    /// Gets the list of response headers to capture.
+    /// Only used when <see cref="CaptureResponseHeaders"/> is true.
+    /// </summary>
+    public List<string> ResponseHeadersToCapture { get; set; } = new()
+    {
+        "Content-Type",
+        "Content-Length",
+        "Cache-Control",
+        "X-Request-Id",
+        "X-Correlation-Id"
+    };
+
+    /// <summary>
+    /// Gets or sets the callback invoked before an event is sent to Sentry.
+    /// Return false to discard the event.
+    /// </summary>
+    /// <remarks>
+    /// Use this to:
+    /// - Scrub sensitive data from events
+    /// - Add custom tags or context
+    /// - Filter events based on custom logic
+    /// </remarks>
+    public SentryCallbacks.BeforeSendCallback? BeforeSend { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback invoked before a breadcrumb is captured.
+    /// Return false to discard the breadcrumb.
+    /// </summary>
+    /// <remarks>
+    /// Use this to:
+    /// - Filter noisy breadcrumbs
+    /// - Scrub sensitive data from breadcrumb messages
+    /// </remarks>
+    public SentryCallbacks.BeforeBreadcrumbCallback? BeforeBreadcrumb { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback for dynamic transaction sampling.
+    /// Return a sample rate (0.0-1.0) or null to use the default rate.
+    /// </summary>
+    /// <remarks>
+    /// This callback is mutually exclusive with <see cref="TracingOptions.SampleRate"/>.
+    /// When set, it takes precedence over the static sample rate.
+    /// </remarks>
+    public SentryCallbacks.TracesSamplerCallback? TracesSampler { get; set; }
 }

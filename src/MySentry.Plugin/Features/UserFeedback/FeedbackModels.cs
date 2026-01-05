@@ -35,6 +35,7 @@ public sealed class FeedbackRequest
 
 /// <summary>
 /// Result of a feedback submission.
+/// Updated for Sentry SDK 6.0.0 - includes FeedbackId from CaptureFeedback return value.
 /// </summary>
 public sealed class FeedbackResult
 {
@@ -44,9 +45,15 @@ public sealed class FeedbackResult
     public bool Success { get; set; }
 
     /// <summary>
-    /// Gets the event ID if available.
+    /// Gets the associated event ID if available.
     /// </summary>
     public SentryEventId? EventId { get; set; }
+
+    /// <summary>
+    /// Gets the feedback event ID returned by Sentry.
+    /// New in Sentry SDK 6.0.0.
+    /// </summary>
+    public SentryEventId? FeedbackId { get; set; }
 
     /// <summary>
     /// Gets any error message if the submission failed.
@@ -58,6 +65,14 @@ public sealed class FeedbackResult
     /// </summary>
     public static FeedbackResult Ok(SentryEventId? eventId = null) =>
         new() { Success = true, EventId = eventId };
+
+    /// <summary>
+    /// Creates a successful result with feedback ID.
+    /// </summary>
+    /// <param name="eventId">The associated event ID.</param>
+    /// <param name="feedbackId">The feedback event ID returned by Sentry.</param>
+    public static FeedbackResult Ok(SentryEventId eventId, SentryEventId feedbackId) =>
+        new() { Success = true, EventId = eventId, FeedbackId = feedbackId };
 
     /// <summary>
     /// Creates a failed result.

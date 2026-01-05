@@ -44,7 +44,7 @@ public static class LoggingExtensions
             LogLevel.Information => PluginBreadcrumbLevel.Info,
             LogLevel.Warning => PluginBreadcrumbLevel.Warning,
             LogLevel.Error => PluginBreadcrumbLevel.Error,
-            LogLevel.Critical => PluginBreadcrumbLevel.Critical,
+            LogLevel.Critical => PluginBreadcrumbLevel.Fatal,
             _ => PluginBreadcrumbLevel.Info
         };
 

@@ -3,6 +3,7 @@ namespace MySentry.Plugin.Abstractions;
 /// <summary>
 /// Provides user feedback capture capabilities.
 /// User feedback allows users to provide additional context about errors.
+/// Updated for Sentry SDK 6.0.0 - CaptureFeedback now returns a SentryId.
 /// </summary>
 public interface IUserFeedbackCapture
 {
@@ -13,13 +14,15 @@ public interface IUserFeedbackCapture
     /// <param name="name">The user's name.</param>
     /// <param name="email">The user's email address.</param>
     /// <param name="comments">The user's feedback comments.</param>
-    void CaptureFeedback(SentryEventId eventId, string name, string email, string comments);
+    /// <returns>The feedback event ID for tracking purposes.</returns>
+    SentryEventId CaptureFeedback(SentryEventId eventId, string name, string email, string comments);
 
     /// <summary>
     /// Captures user feedback with detailed information.
     /// </summary>
     /// <param name="feedback">The feedback to capture.</param>
-    void CaptureFeedback(UserFeedback feedback);
+    /// <returns>The feedback event ID for tracking purposes.</returns>
+    SentryEventId CaptureFeedback(UserFeedback feedback);
 }
 
 /// <summary>

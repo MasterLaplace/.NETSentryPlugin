@@ -2,6 +2,7 @@ namespace MySentry.Plugin.Configuration;
 
 /// <summary>
 /// Fluent builder for tracing configuration.
+/// Updated for Sentry SDK 6.0.0 with W3C traceparent support.
 /// </summary>
 public sealed class TracingBuilder
 {
@@ -57,6 +58,19 @@ public sealed class TracingBuilder
     public TracingBuilder TraceHttpClients(bool enabled = true)
     {
         _options.TraceHttpClients = enabled;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables W3C traceparent header propagation on outgoing requests.
+    /// New in Sentry SDK 6.0.0. When enabled, outgoing requests will include the W3C traceparent header.
+    /// See https://develop.sentry.dev/sdk/telemetry/traces/distributed-tracing/#w3c-trace-context-header
+    /// </summary>
+    /// <param name="enabled">Whether to propagate traceparent header.</param>
+    /// <returns>The builder for chaining.</returns>
+    public TracingBuilder PropagateTraceparent(bool enabled = true)
+    {
+        _options.PropagateTraceparent = enabled;
         return this;
     }
 

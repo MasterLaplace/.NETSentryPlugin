@@ -50,8 +50,12 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Enable Sentry middleware
-app.UseMySentry();
+// Enable Sentry middleware uniquement si DSN présent
+var dsn = builder.Configuration["MySentry:Dsn"];
+if (!string.IsNullOrWhiteSpace(dsn))
+{
+    app.UseMySentry();
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

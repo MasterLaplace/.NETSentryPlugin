@@ -187,7 +187,9 @@ internal sealed class SentryScopeWrapper : ISentryScope
         PluginBreadcrumbLevel.Info => Sentry.BreadcrumbLevel.Info,
         PluginBreadcrumbLevel.Warning => Sentry.BreadcrumbLevel.Warning,
         PluginBreadcrumbLevel.Error => Sentry.BreadcrumbLevel.Error,
-        PluginBreadcrumbLevel.Critical => Sentry.BreadcrumbLevel.Critical,
+        PluginBreadcrumbLevel.Fatal => Sentry.BreadcrumbLevel.Fatal,
+        // Note: PluginBreadcrumbLevel.Critical is an alias for Fatal (same enum value)
+        // so it's automatically handled by the Fatal case above
         _ => Sentry.BreadcrumbLevel.Info
     };
 }

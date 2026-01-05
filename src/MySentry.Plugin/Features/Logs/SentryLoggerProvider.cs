@@ -111,7 +111,7 @@ internal sealed class SentryLogger : ILogger
             LogLevel.Information => PluginBreadcrumbLevel.Info,
             LogLevel.Warning => PluginBreadcrumbLevel.Warning,
             LogLevel.Error => PluginBreadcrumbLevel.Error,
-            LogLevel.Critical => PluginBreadcrumbLevel.Critical,
+            LogLevel.Critical => PluginBreadcrumbLevel.Fatal, // SDK 6.0: Critical → Fatal
             _ => PluginBreadcrumbLevel.Info
         };
     }

@@ -38,13 +38,13 @@ public sealed class FeedbackHandler
 
         var eventId = request.EventId ?? PluginSentryEventId.Empty;
 
-        _feedbackCapture.CaptureFeedback(
+        var feedbackId = _feedbackCapture.CaptureFeedback(
             eventId,
             request.Name ?? string.Empty,
             request.Email ?? string.Empty,
             request.Comments);
 
-        return FeedbackResult.Ok(eventId);
+        return FeedbackResult.Ok(eventId, feedbackId);
     }
 
     /// <summary>
@@ -78,12 +78,12 @@ public sealed class FeedbackHandler
         var eventId = errorCapture.CaptureException(exception);
 
         // Then attach the feedback
-        _feedbackCapture.CaptureFeedback(
+        var feedbackId = _feedbackCapture.CaptureFeedback(
             eventId,
             request.Name ?? string.Empty,
             request.Email ?? string.Empty,
             request.Comments);
 
-        return FeedbackResult.Ok(eventId);
+        return FeedbackResult.Ok(eventId, feedbackId);
     }
 }

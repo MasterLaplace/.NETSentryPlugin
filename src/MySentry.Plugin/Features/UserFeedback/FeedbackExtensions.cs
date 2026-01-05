@@ -32,14 +32,15 @@ public static class FeedbackExtensions
     /// <param name="email">The user's email.</param>
     /// <param name="comments">The user's comments.</param>
     /// <param name="name">The user's name.</param>
-    public static void CaptureUserFeedbackFor(
+    /// <returns>The feedback event ID for tracking purposes.</returns>
+    public static PluginSentryEventId CaptureUserFeedbackFor(
         this IUserFeedbackCapture feedbackCapture,
         PluginSentryEventId eventId,
         string? email,
         string comments,
         string? name = null)
     {
-        feedbackCapture.CaptureFeedback(eventId, name ?? string.Empty, email ?? string.Empty, comments);
+        return feedbackCapture.CaptureFeedback(eventId, name ?? string.Empty, email ?? string.Empty, comments);
     }
 
     /// <summary>
