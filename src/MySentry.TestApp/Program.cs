@@ -1,6 +1,9 @@
 using MySentry.Plugin.Configuration;
 using MySentry.Plugin.Extensions;
 using MySentry.Plugin.Features.UserFeedback;
+using Microsoft.Extensions.DependencyInjection;
+using MySentry.Plugin.Abstractions;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +55,11 @@ var app = builder.Build();
 
 // Enable Sentry middleware uniquement si DSN présent
 var dsn = builder.Configuration["MySentry:Dsn"];
+// Log DSN and configuration for debugging (visible in console)
+var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+startupLogger.LogInformation("MySentry configuration loaded: DSN='{Dsn}', Environment='{Env}', Debug={Debug}", dsn ?? "(null)", builder.Environment.EnvironmentName, builder.Configuration["MySentry:Debug"] ?? "(null)");
+Console.WriteLine($"[DEBUG] MySentry DSN: '{dsn ?? "(null)"}'");
+
 if (!string.IsNullOrWhiteSpace(dsn))
 {
     app.UseMySentry();
@@ -71,5 +79,13 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { Status = "Healthy", Timestamp = DateTime.UtcNow }))
     .WithName("HealthCheck")
     .WithTags("Health");
+
+// Root onboarding endpoint: triggers an event so Sentry's "Take me to my error" works
+app.MapGet("/", () =>
+{
+    var plugin = app.Services.GetService<ISentryPlugin>();
+    plugin?.CaptureMessage("Onboarding test: root visited");
+    return Results.Text("Onboarding event sent. Check Sentry dashboard.", "text/plain");
+});
 
 app.Run();

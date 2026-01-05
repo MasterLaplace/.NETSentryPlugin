@@ -30,8 +30,13 @@ public static class HttpClientTracingExtensions
     /// </example>
     public static IHttpClientBuilder AddSentryHttpClient(this IServiceCollection services, string name)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrEmpty(name);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(services);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(name);
+#endif
 
         return services.AddHttpClient(name)
             .AddSentryTracing();
@@ -110,8 +115,13 @@ public static class HttpClientTracingExtensions
         this IHttpClientBuilder builder,
         Action<SentryHttpMessageHandlerOptions> configure)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(builder);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configure);
+#endif
 
         var options = new SentryHttpMessageHandlerOptions();
         configure(options);

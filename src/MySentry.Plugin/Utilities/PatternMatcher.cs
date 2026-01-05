@@ -32,28 +32,28 @@ public static class PatternMatcher
         }
 
         // Handle *contains* pattern
-        if (pattern.StartsWith('*') && pattern.EndsWith('*') && pattern.Length > 2)
+        if (pattern.StartsWith("*") && pattern.EndsWith("*") && pattern.Length > 2)
         {
-            var contains = pattern[1..^1];
-            return value.Contains(contains, StringComparison.OrdinalIgnoreCase);
+            var contains = pattern.Substring(1, pattern.Length - 2);
+            return value!.IndexOf(contains, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         // Handle prefix* pattern
-        if (pattern.EndsWith('*'))
+        if (pattern.EndsWith("*"))
         {
-            var prefix = pattern[..^1];
-            return value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+            var prefix = pattern.Substring(0, pattern.Length - 1);
+            return value!.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
         }
 
         // Handle *suffix pattern
-        if (pattern.StartsWith('*'))
+        if (pattern.StartsWith("*"))
         {
-            var suffix = pattern[1..];
-            return value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
+            var suffix = pattern.Substring(1);
+            return value!.EndsWith(suffix, StringComparison.OrdinalIgnoreCase);
         }
 
         // Exact match
-        return value.Equals(pattern, StringComparison.OrdinalIgnoreCase);
+        return value!.Equals(pattern, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -64,7 +64,11 @@ public static class PatternMatcher
     /// <returns>True if the value matches any pattern; otherwise, false.</returns>
     public static bool MatchesAny(string? value, IEnumerable<string> patterns)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(patterns);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(patterns);
+#endif
 
         foreach (var pattern in patterns)
         {

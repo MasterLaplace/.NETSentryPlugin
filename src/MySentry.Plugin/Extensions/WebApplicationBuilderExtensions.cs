@@ -23,7 +23,11 @@ public static class WebApplicationBuilderExtensions
     /// <returns>The web application builder for chaining.</returns>
     public static WebApplicationBuilder AddMySentry(this WebApplicationBuilder builder)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(builder);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(builder);
+#endif
         return builder.AddMySentry(_ => { });
     }
 
@@ -37,8 +41,13 @@ public static class WebApplicationBuilderExtensions
         this WebApplicationBuilder builder,
         Action<SentryPluginBuilder> configure)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(configure);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(builder);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configure);
+#endif
 
         var pluginBuilder = new SentryPluginBuilder();
         configure(pluginBuilder);
@@ -355,7 +364,11 @@ internal sealed class TypeExceptionFilter : IExceptionFilter
 
     public TypeExceptionFilter(Type exceptionType)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(exceptionType);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(exceptionType);
+#endif
         _exceptionType = exceptionType;
     }
 

@@ -60,9 +60,15 @@ public sealed class FeedbackHandler
         IErrorCapture errorCapture)
     {
     #if NET5_0_OR_GREATER
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(exception);
         ArgumentNullException.ThrowIfNull(errorCapture);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(request);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(exception);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(errorCapture);
+#endif
     #else
         MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(request);
         MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(exception);

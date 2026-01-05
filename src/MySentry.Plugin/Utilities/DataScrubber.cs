@@ -145,8 +145,8 @@ public static class DataScrubber
             return queryString;
         }
 
-        var hasLeadingQuestion = queryString.StartsWith('?');
-        var query = hasLeadingQuestion ? queryString[1..] : queryString;
+        var hasLeadingQuestion = queryString!.StartsWith("?");
+        var query = hasLeadingQuestion ? queryString.Substring(1) : queryString;
 
         if (string.IsNullOrEmpty(query))
         {
@@ -165,8 +165,8 @@ public static class DataScrubber
                 continue;
             }
 
-            var key = part[..equalsIndex];
-            var value = part[(equalsIndex + 1)..];
+            var key = part.Substring(0, equalsIndex);
+            var value = part.Substring(equalsIndex + 1);
 
             if (IsSensitiveField(key, options))
             {
@@ -197,6 +197,6 @@ public static class DataScrubber
         }
 
         return options.SensitiveFields.Any(f =>
-            fieldName.Contains(f, StringComparison.OrdinalIgnoreCase));
+            fieldName.IndexOf(f, StringComparison.OrdinalIgnoreCase) >= 0);
     }
 }

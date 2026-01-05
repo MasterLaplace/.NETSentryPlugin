@@ -308,7 +308,11 @@ public sealed class SentryPluginBuilder
     /// <returns>The builder for chaining.</returns>
     public SentryPluginBuilder Configure(Action<SentryPluginOptions> configure)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(configure);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configure);
+#endif
         _configurationActions.Add(configure);
         return this;
     }
@@ -341,7 +345,11 @@ public sealed class SentryPluginBuilder
     /// </remarks>
     public SentryPluginBuilder SetBeforeSend(SentryCallbacks.BeforeSendCallback beforeSend)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(beforeSend);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(beforeSend);
+#endif
         _options.BeforeSend = beforeSend;
         return this;
     }
@@ -372,7 +380,11 @@ public sealed class SentryPluginBuilder
     /// </remarks>
     public SentryPluginBuilder SetBeforeBreadcrumb(SentryCallbacks.BeforeBreadcrumbCallback beforeBreadcrumb)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(beforeBreadcrumb);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(beforeBreadcrumb);
+#endif
         _options.BeforeBreadcrumb = beforeBreadcrumb;
         return this;
     }
@@ -409,7 +421,11 @@ public sealed class SentryPluginBuilder
     /// </remarks>
     public SentryPluginBuilder SetTracesSampler(SentryCallbacks.TracesSamplerCallback tracesSampler)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(tracesSampler);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(tracesSampler);
+#endif
         _options.TracesSampler = tracesSampler;
         return this;
     }
@@ -430,7 +446,11 @@ public sealed class SentryPluginBuilder
     /// </example>
     public SentryPluginBuilder ConfigureDataScrubbing(Action<DataScrubbingOptions> configure)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(configure);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configure);
+#endif
         configure(_options.DataScrubbing);
         return this;
     }

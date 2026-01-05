@@ -4,13 +4,13 @@
 
 [defaults]
 # Your Sentry organization slug (found in your Sentry URL)
-org = 6tm
+org = laplace-me
 
 # Your Sentry project slug
 project = mysentryapp
 
 # Sentry server URL (use default for SaaS, customize for self-hosted)
-url = https://sentry.6tm.eu/
+url = https://sentry.io/
 
 [auth]
 # Auth token is loaded from SENTRY_AUTH_TOKEN environment variable

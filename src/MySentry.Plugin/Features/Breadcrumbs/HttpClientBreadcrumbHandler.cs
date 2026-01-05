@@ -175,8 +175,13 @@ public static class HttpClientBreadcrumbExtensions
         this IHttpClientBuilder builder,
         IServiceProvider serviceProvider)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(serviceProvider);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(builder);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(serviceProvider);
+#endif
 
         var plugin = serviceProvider.GetService<ISentryPlugin>();
         return builder.AddHttpMessageHandler(() =>

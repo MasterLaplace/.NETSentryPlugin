@@ -424,7 +424,9 @@ internal sealed class SentrySdkHubAdapter : IHub
 {
     public bool IsEnabled => SentrySdk.IsEnabled;
     public SentryId LastEventId => SentrySdk.LastEventId;
+#if NET8_0_OR_GREATER
     public IMetricAggregator Metrics => throw new NotSupportedException("Metrics not supported in this adapter");
+#endif
 
     public SentryId CaptureEvent(SentryEvent evt, Scope? scope = null) => SentrySdk.CaptureEvent(evt);
     public SentryId CaptureEvent(SentryEvent evt, Action<Scope> configureScope)
@@ -446,8 +448,10 @@ internal sealed class SentrySdkHubAdapter : IHub
     public SentryId CaptureException(Exception exception, Scope? scope = null) => SentrySdk.CaptureException(exception);
     public SentryId CaptureException(Exception exception, Action<Scope> configureScope) => SentrySdk.CaptureException(exception, configureScope);
 
-    [Obsolete(\"Use CaptureFeedback instead. CaptureUserFeedback was removed in Sentry SDK 6.0.0.\")]
+#if NET8_0_OR_GREATER
+    [Obsolete("Use CaptureFeedback instead. CaptureUserFeedback was removed in Sentry SDK 6.0.0.")]
     public void CaptureUserFeedback(Sentry.UserFeedback userFeedback) => SentrySdk.CaptureFeedback(userFeedback.Comments, userFeedback.Email, userFeedback.Name, userFeedback.EventId);
+#endif
 
     public void AddBreadcrumb(Breadcrumb breadcrumb, SentryHint? hint = null) =>
         SentrySdk.AddBreadcrumb(breadcrumb.Message ?? string.Empty, breadcrumb.Category, breadcrumb.Type, breadcrumb.Data?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value), breadcrumb.Level);
@@ -499,5 +503,39 @@ internal sealed class SentrySdkHubAdapter : IHub
 
     public SentryId CaptureCheckIn(string monitorSlug, CheckInStatus status, SentryId? checkInId = null, TimeSpan? duration = null, Scope? scope = null, Action<SentryMonitorOptions>? configureMonitorOptions = null) =>
         SentrySdk.CaptureCheckIn(monitorSlug, status, checkInId);
+
+    // Newer Sentry IHub members (implemented as adapter delegates)
+    public W3CTraceparentHeader? GetTraceparentHeader() => SentrySdk.GetTraceparentHeader();
+
+    public bool IsSessionActive => SentrySdk.IsSessionActive;
+
+    public SentryStructuredLogger Logger => throw new NotSupportedException("Structured logging not supported in this adapter");
+
+    public SentryId CaptureFeedback(Sentry.SentryFeedback feedback, out Sentry.CaptureFeedbackResult result, Action<Scope>? configureScope = null, Sentry.SentryHint? hint = null)
+    {
+        if (configureScope != null) SentrySdk.ConfigureScope(configureScope);
+        result = default;
+        return SentryId.Empty;
+    }
+
+    public SentryId CaptureFeedback(Sentry.SentryFeedback feedback, out Sentry.CaptureFeedbackResult result, Scope? scope = null, Sentry.SentryHint? hint = null)
+    {
+        // Fallback implementation for ISentryClient API surface
+        result = default;
+        return SentryId.Empty;
+    }
+
+    public void ConfigureScope<TArg>(Action<Scope, TArg> action, TArg arg)
+    {
+        SentrySdk.ConfigureScope(scope => action(scope, arg));
+    }
+
+    public Task ConfigureScopeAsync<TArg>(Func<Scope, TArg, Task> action, TArg arg)
+    {
+        return SentrySdk.ConfigureScopeAsync(scope => action(scope, arg));
+    }
+
+    public void SetTag(string key, string value) => SentrySdk.ConfigureScope(s => s.SetTag(key, value));
+    public void UnsetTag(string key) => SentrySdk.ConfigureScope(s => s.SetTag(key, string.Empty));
 }
 #endif

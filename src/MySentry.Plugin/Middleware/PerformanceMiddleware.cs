@@ -30,9 +30,15 @@ public sealed class PerformanceMiddleware
         ILogger<PerformanceMiddleware> logger,
         IOptions<SentryPluginOptions> options)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(options);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(next);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(logger);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(options);
+#endif
 
         _next = next;
         _logger = logger;
@@ -47,8 +53,13 @@ public sealed class PerformanceMiddleware
     /// <returns>A task representing the middleware execution.</returns>
     public async Task InvokeAsync(HttpContext context, ISentryPlugin sentryPlugin)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(sentryPlugin);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(context);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(sentryPlugin);
+#endif
 
         if (!_options.Tracing.Enabled || !_options.Tracing.TraceAllRequests)
         {

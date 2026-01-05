@@ -33,10 +33,17 @@ public sealed class MySentryMiddleware
         IOptions<SentryPluginOptions> options,
         IEnumerable<IEventEnricher> enrichers)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(enrichers);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(next);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(logger);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(options);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(enrichers);
+#endif
 
         _next = next;
         _logger = logger;
@@ -52,8 +59,13 @@ public sealed class MySentryMiddleware
     /// <returns>A task representing the middleware execution.</returns>
     public async Task InvokeAsync(HttpContext context, ISentryPlugin sentryPlugin)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(sentryPlugin);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(context);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(sentryPlugin);
+#endif
 
         if (ShouldIgnoreRequest(context))
         {

@@ -27,9 +27,15 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
         IOptions<SentryPluginOptions> options,
         ILogger<SentryPlugin> logger)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(hub);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(hub);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(options);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(logger);
+#endif
 
         _hub = hub;
         _options = options.Value;
@@ -71,7 +77,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureException(Exception exception)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(exception);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(exception);
+#endif
 
         var eventId = _hub.CaptureException(exception);
         _logger.LogDebug("Captured exception with event ID {EventId}", eventId);
@@ -81,8 +91,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureException(Exception exception, Action<ISentryScope> configureScope)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(exception);
         ArgumentNullException.ThrowIfNull(configureScope);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(exception);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configureScope);
+#endif
 
         var eventId = _hub.CaptureException(exception, scope =>
         {
@@ -95,7 +110,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureMessage(string message, PluginSeverityLevel level = PluginSeverityLevel.Info)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(message);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(message);
+#endif
 
         var sentryLevel = SentryScopeWrapper.MapSeverityLevel(level);
         var eventId = _hub.CaptureMessage(message, sentryLevel);
@@ -106,8 +125,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public PluginSentryEventId CaptureMessage(string message, PluginSeverityLevel level, Action<ISentryScope> configureScope)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(message);
         ArgumentNullException.ThrowIfNull(configureScope);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(message);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configureScope);
+#endif
 
         var sentryLevel = SentryScopeWrapper.MapSeverityLevel(level);
         var eventId = _hub.CaptureMessage(message, scope =>
@@ -126,8 +150,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public ITransactionTracker StartTransaction(string name, string operation)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(operation);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(name);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(operation);
+#endif
 
         var transaction = _hub.StartTransaction(name, operation);
         _hub.ConfigureScope(scope => scope.Transaction = transaction);
@@ -138,9 +167,15 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public ITransactionTracker StartTransaction(string name, string operation, Action<TransactionOptions> configure)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(operation);
         ArgumentNullException.ThrowIfNull(configure);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(name);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(operation);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configure);
+#endif
 
         var options = new TransactionOptions();
         configure(options);
@@ -207,7 +242,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
         string? type = null,
         PluginBreadcrumbLevel level = PluginBreadcrumbLevel.Info)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(message);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(message);
+#endif
 
         _hub.AddBreadcrumb(
             message,
@@ -224,7 +263,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
         IReadOnlyDictionary<string, string>? data,
         PluginBreadcrumbLevel level = PluginBreadcrumbLevel.Info)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(message);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(message);
+#endif
 
         _hub.AddBreadcrumb(
             message,
@@ -237,8 +280,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void AddHttpBreadcrumb(string method, string url, int? statusCode = null)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(method);
         ArgumentException.ThrowIfNullOrEmpty(url);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(method);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(url);
+#endif
 
         var data = new Dictionary<string, string>
         {
@@ -262,8 +310,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void AddNavigationBreadcrumb(string from, string to)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(from);
         ArgumentException.ThrowIfNullOrEmpty(to);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(from);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(to);
+#endif
 
         var data = new Dictionary<string, string>
         {
@@ -282,7 +335,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void AddQueryBreadcrumb(string query, string category = "query")
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(query);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(query);
+#endif
 
         _hub.AddBreadcrumb(
             query,
@@ -298,7 +355,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void SetUser(PluginSentryUser user)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(user);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(user);
+#endif
 
         _currentUser = user;
         _hub.ConfigureScope(scope =>
@@ -311,7 +372,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void SetUserId(string userId)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(userId);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(userId);
+#endif
 
         SetUser(new PluginSentryUser(userId));
     }
@@ -319,7 +384,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void SetUser(string userId, string? email = null, string? username = null)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(userId);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(userId);
+#endif
 
         SetUser(new PluginSentryUser
         {
@@ -350,7 +419,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void ConfigureScope(Action<ISentryScope> configureScope)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(configureScope);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configureScope);
+#endif
 
         _hub.ConfigureScope(scope =>
         {
@@ -361,7 +434,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task ConfigureScopeAsync(Func<ISentryScope, Task> configureScope)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(configureScope);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(configureScope);
+#endif
 
         await _hub.ConfigureScopeAsync(async scope =>
         {
@@ -384,7 +461,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void WithScope(Action<ISentryScope> action)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(action);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(action);
+#endif
 
         using var _ = _hub.PushScope();
         _hub.ConfigureScope(scope =>
@@ -396,7 +477,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task WithScopeAsync(Func<ISentryScope, Task> action)
     {
+#if NET5_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(action);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(action);
+#endif
 
         using var _ = _hub.PushScope();
         await _hub.ConfigureScopeAsync(async scope =>
@@ -449,7 +534,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public string CheckInProgress(string monitorSlug)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+#endif
 
         var checkInId = Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.InProgress);
         _logger.LogDebug("Check-in started for monitor {MonitorSlug} with ID {CheckInId}", monitorSlug, checkInId);
@@ -459,7 +548,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void CheckInOk(string monitorSlug, string? checkInId = null)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+#endif
 
         Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId!);
         Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.Ok, id);
@@ -469,7 +562,11 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void CheckInError(string monitorSlug, string? checkInId = null)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+#endif
 
         Sentry.SentryId? id = string.IsNullOrEmpty(checkInId) ? null : Sentry.SentryId.Parse(checkInId!);
         Sentry.SentrySdk.CaptureCheckIn(monitorSlug, Sentry.CheckInStatus.Error, id);
@@ -479,8 +576,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void ExecuteJob(string monitorSlug, Action job)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
         ArgumentNullException.ThrowIfNull(job);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(job);
+#endif
 
         var checkInId = CheckInProgress(monitorSlug);
         try
@@ -498,8 +600,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task ExecuteJobAsync(string monitorSlug, Func<Task> job)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
         ArgumentNullException.ThrowIfNull(job);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(job);
+#endif
 
         var checkInId = CheckInProgress(monitorSlug);
         try
@@ -517,8 +624,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public T ExecuteJob<T>(string monitorSlug, Func<T> job)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
         ArgumentNullException.ThrowIfNull(job);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(job);
+#endif
 
         var checkInId = CheckInProgress(monitorSlug);
         try
@@ -537,8 +649,13 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public async Task<T> ExecuteJobAsync<T>(string monitorSlug, Func<Task<T>> job)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(monitorSlug);
         ArgumentNullException.ThrowIfNull(job);
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(monitorSlug);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(job);
+#endif
 
         var checkInId = CheckInProgress(monitorSlug);
         try
@@ -561,26 +678,37 @@ public sealed class SentryPlugin : ISentryPlugin, IUserFeedbackCapture, ICronMon
     /// <inheritdoc/>
     public void SetTag(string key, string value)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentException.ThrowIfNullOrEmpty(value);
-
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(key);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(value);
+#endif
         _hub.ConfigureScope(scope => scope.SetTag(key, value));
     }
 
     /// <inheritdoc/>
     public void SetExtra(string key, object? value)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(key);
-
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(key);
+#endif
         _hub.ConfigureScope(scope => scope.SetExtra(key, value));
     }
 
     /// <inheritdoc/>
     public void SetContext(string key, object value)
     {
+#if NET5_0_OR_GREATER
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(value);
-
+#else
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNullOrEmpty(key);
+        MySentry.Plugin.NetFrameworkPolyfills.ThrowIfNull(value);
+#endif
         _hub.ConfigureScope(scope => scope.Contexts[key] = value);
     }
 
