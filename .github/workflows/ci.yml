@@ -52,7 +52,9 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           else
-            echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
+            # For non-tag builds emit a SemVer-compatible pre-release version using a short SHA
+            SHORT_SHA=${GITHUB_SHA:0:7}
+            echo "version=0.0.0-ci.${SHORT_SHA}" >> $GITHUB_OUTPUT
           fi
 
       - name: Restore dependencies
