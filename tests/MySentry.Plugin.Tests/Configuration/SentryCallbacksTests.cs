@@ -349,7 +349,9 @@ public class SentryCallbacksTests
         {
             // Filter health check events
             if (info.TransactionName?.Contains("health") == true)
+            {
                 return false;
+            }
             return true;
         };
 
@@ -403,7 +405,9 @@ public class SentryCallbacksTests
         SentryCallbacks.BeforeBreadcrumbCallback callback = info =>
         {
             if (info.Category != null && noisyCategories.Contains(info.Category))
+            {
                 return false;
+            }
             return true;
         };
 
@@ -438,9 +442,13 @@ public class SentryCallbacksTests
         SentryCallbacks.TracesSamplerCallback sampler = context =>
         {
             if (context.TransactionName.Contains("health"))
+            {
                 return 0.0;
+            }
             if (context.Operation == "http.server")
+            {
                 return 1.0;
+            }
             return 0.5;
         };
 
@@ -474,7 +482,9 @@ public class SentryCallbacksTests
         SentryCallbacks.TracesSamplerCallback sampler = context =>
         {
             if (context.ParentSampled.HasValue)
+            {
                 return context.ParentSampled.Value ? 1.0 : 0.0;
+            }
             return 0.5;
         };
 
