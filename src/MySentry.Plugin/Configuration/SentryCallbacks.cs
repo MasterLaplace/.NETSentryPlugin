@@ -1,6 +1,6 @@
-namespace MySentry.Plugin.Configuration;
-
 using MySentry.Plugin.Abstractions;
+
+namespace MySentry.Plugin.Configuration;
 
 /// <summary>
 /// Provides callback types for customizing Sentry event processing.
