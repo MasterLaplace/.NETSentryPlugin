@@ -150,27 +150,47 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_URL: ${{ secrets.SENTRY_URL }}
         run: |
           VERSION=${{ needs.build.outputs.version }}
 
-          echo "Creating Sentry release: $VERSION"
+          echo "Creating Sentry release: $VERSION (using SENTRY_URL=${SENTRY_URL:-https://sentry.io})"
+
+          # Basic validation
+          if [ -z "${SENTRY_AUTH_TOKEN}" ] || [ -z "${SENTRY_ORG}" ]; then
+            echo "ERROR: SENTRY_AUTH_TOKEN and SENTRY_ORG must be set in repository secrets" >&2
+            exit 1
+          fi
+
+          # Debug: print sentry-cli version and try to contact the org (non-fatal)
+          sentry-cli --version || true
+          if [ -n "${SENTRY_URL}" ]; then
+            sentry-cli --url "${SENTRY_URL}" info --org "${SENTRY_ORG}" --debug || true
+          else
+            sentry-cli info --org "${SENTRY_ORG}" --debug || true
+          fi
+
+          # Helper to pass --url only when SENTRY_URL provided
+          SENTRY_CLI_URL_PARAM=""
+          if [ -n "${SENTRY_URL}" ]; then
+            SENTRY_CLI_URL_PARAM="--url ${SENTRY_URL}"
+          fi
 
           # Create release
-          sentry-cli releases new $VERSION
+          sentry-cli ${SENTRY_CLI_URL_PARAM} releases new $VERSION
 
           # Associate commits
-          sentry-cli releases set-commits $VERSION --auto
+          sentry-cli ${SENTRY_CLI_URL_PARAM} releases set-commits $VERSION --auto
 
-          # Upload debug files
-          sentry-cli debug-files upload \
+          # Upload debug files (allow failure)
+          sentry-cli ${SENTRY_CLI_URL_PARAM} debug-files upload \
             --include-sources \
             ./src/MySentry.Plugin/bin/Release/ || true
 
           # Finalize release
-          sentry-cli releases finalize $VERSION
+          sentry-cli ${SENTRY_CLI_URL_PARAM} releases finalize $VERSION
 
           echo "Sentry release $VERSION created successfully"
-
   # ============================================================================
   # Deploy Job
   # ============================================================================
