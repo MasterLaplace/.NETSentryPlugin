@@ -350,7 +350,7 @@ Use this checklist to verify all features work correctly:
 - [x] Sensitive data scrubbing works (custom patterns, fields, headers)
 - [x] Response headers captured in error context
 - [x] Entity Framework Core breadcrumbs captured
-- [x] All 60 unit tests pass
+- [x] All 339 unit tests pass
 
 ---
 

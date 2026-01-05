@@ -6,7 +6,7 @@
 ![Sentry](https://img.shields.io/badge/Sentry-4.12.1-362D59?style=for-the-badge&logo=sentry)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![CI](https://img.shields.io/badge/CI-GitLab%20%7C%20GitHub-orange?style=for-the-badge)
-![Tests](https://img.shields.io/badge/Tests-60%2F60-brightgreen?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-339%2F339-brightgreen?style=for-the-badge)
 
 **An enterprise-grade Sentry integration plugin for .NET applications**
 
