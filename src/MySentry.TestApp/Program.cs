@@ -4,8 +4,15 @@ using MySentry.Plugin.Features.UserFeedback;
 using Microsoft.Extensions.DependencyInjection;
 using MySentry.Plugin.Abstractions;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Get version dynamically from assembly or environment variable
+var appVersion = Environment.GetEnvironmentVariable("APP_VERSION")
+    ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+    ?? "1.0.0";
+var releaseVersion = $"MySentry.TestApp@{appVersion}";
 
 // ============================================================================
 // OPTION 1: Configuration via appsettings.json (recommended for production)
@@ -19,7 +26,7 @@ builder.AddMySentry(config =>
 {
     config.WithDsn(builder.Configuration["MySentry:Dsn"] ?? string.Empty)
         .WithEnvironment(builder.Environment.EnvironmentName)
-        .WithRelease("MySentry.TestApp@1.0.0")
+        .WithRelease(releaseVersion)
         .WithMaxBreadcrumbs(100)
         .WithStackTrace(true);
 
@@ -57,8 +64,9 @@ var app = builder.Build();
 var dsn = builder.Configuration["MySentry:Dsn"];
 // Log DSN and configuration for debugging (visible in console)
 var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
-startupLogger.LogInformation("MySentry configuration loaded: DSN='{Dsn}', Environment='{Env}', Debug={Debug}", dsn ?? "(null)", builder.Environment.EnvironmentName, builder.Configuration["MySentry:Debug"] ?? "(null)");
-Console.WriteLine($"[DEBUG] MySentry DSN: '{dsn ?? "(null)"}'");
+startupLogger.LogInformation("MySentry configuration loaded: DSN='{Dsn}', Environment='{Env}', Release='{Release}'", dsn ?? "(null)", builder.Environment.EnvironmentName, releaseVersion);
+Console.WriteLine("[DEBUG] MySentry DSN: '" + (dsn ?? "(null)") + "'");
+Console.WriteLine("[DEBUG] MySentry Release: '" + releaseVersion + "'");
 
 if (!string.IsNullOrWhiteSpace(dsn))
 {
